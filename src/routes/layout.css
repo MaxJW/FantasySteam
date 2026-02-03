@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+
+/* Steam-inspired dark theme base */
+:root {
+	--steam-bg: #1b2838;
+	--steam-panel: #2a475e;
+	--steam-panel-hover: #3d6a8a;
+	--steam-blue: #66c0f4;
+	--steam-blue-hover: #8bb8e8;
+	--steam-green: #a4d007;
+	--steam-green-dark: #5c7e10;
+	--steam-text: #c7d5e0;
+	--steam-text-muted: #8f98a0;
+	--steam-border: #3d5a80;
+}
