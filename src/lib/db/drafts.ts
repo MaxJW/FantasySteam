@@ -5,6 +5,7 @@ import {
 	arrayUnion,
 	arrayRemove,
 	serverTimestamp,
+	Timestamp,
 	onSnapshot
 } from 'firebase/firestore';
 import { draftRef, teamRef } from './leagues';
@@ -32,7 +33,8 @@ export function subscribeDraft(
 }
 
 export function getSnakeOrderForRound(order: string[], round: number): string[] {
-	const rev = round % 2 === 1;
+	// Round 1: normal order (A, B). Round 2: snake reversed (B, A). Round 3: normal again.
+	const rev = round % 2 === 0;
 	return rev ? [...order].reverse() : order;
 }
 
@@ -95,21 +97,35 @@ export async function startDraft(leagueId: string, season: string): Promise<void
 	});
 }
 
-export async function advanceToNextPick(leagueId: string, season: string): Promise<void> {
+export async function advanceToNextPick(
+	leagueId: string,
+	season: string,
+	options?: { skipCurrent?: boolean }
+): Promise<void> {
 	const ref = draftRef(leagueId, season);
 	const snap = await getDoc(ref);
 	if (!snap.exists()) return;
 	const data = snap.data() as Draft;
 	const order = data.order;
-	const cp = data.currentPick;
-	if (!cp) return;
 
-	let nextRound = cp.round;
-	let nextPos = cp.position + 1;
-	if (nextPos >= order.length) {
-		nextRound += 1;
-		nextPos = 0;
+	let nextRound: number;
+	let nextPos: number;
+
+	if (options?.skipCurrent && data.currentPick) {
+		// Force Skip: advance from current slot without adding a pick
+		nextPos = data.currentPick.position + 1;
+		nextRound = data.currentPick.round;
+		if (nextPos >= order.length) {
+			nextRound += 1;
+			nextPos = 0;
+		}
+	} else {
+		// After a pick: next slot = number of picks already made (robust, no reliance on currentPick)
+		const nextPickIndex = data.picks?.length ?? 0;
+		nextRound = Math.floor(nextPickIndex / order.length) + 1;
+		nextPos = nextPickIndex % order.length;
 	}
+
 	const snakeOrder = getSnakeOrderForRound(order, nextRound);
 	const nextUserId = snakeOrder[nextPos] ?? null;
 
@@ -143,11 +159,12 @@ export async function submitPick(
 	if (!cp || cp.userId !== userId) throw new Error('Not your turn');
 	if (await isGameHidden(gameId)) throw new Error('That game is not available for draft');
 
+	// serverTimestamp() cannot be used inside arrayUnion(); use client Timestamp instead
 	const pick: DraftPick = {
 		userId,
 		gameId,
 		pickType,
-		timestamp: serverTimestamp() as DraftPick['timestamp']
+		timestamp: Timestamp.now()
 	};
 	await updateDoc(ref, {
 		picks: arrayUnion(pick)

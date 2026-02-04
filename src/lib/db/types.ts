@@ -10,7 +10,6 @@ export interface UserProfile {
 export interface LeagueSettings {
 	hypeMultiplier?: number;
 	seasonalPicks: number;
-	pickTimer?: number; // seconds; optional, no limit when omitted
 }
 
 export type LeagueStatus = 'draft' | 'active' | 'completed';

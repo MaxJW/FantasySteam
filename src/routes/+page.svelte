@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { currentUser, signInWithGoogle } from '$lib/auth';
+	import { Button } from '$lib/components/ui/button';
+	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 
 	let loading = $state(false);
 
@@ -22,31 +24,58 @@
 
 <svelte:head><title>Fantasy Steam League</title></svelte:head>
 
-<div class="min-h-screen flex flex-col items-center justify-center p-6 bg-[#1b2838]">
-	<div class="max-w-xl w-full text-center">
-		<h1 class="text-4xl font-bold mb-4 text-[#c7d5e0]">Fantasy Steam League</h1>
-		<p class="text-lg text-[#8f98a0] mb-8">
-			Draft upcoming Steam games. Score points from owner growth and peak CCU. Compete with friends in real-time snake drafts.
-		</p>
-
-		<section class="text-left mb-10 rounded-lg border border-[#3d5a80] p-6 bg-[#2a475e] shadow-xl">
-			<h2 class="text-xl font-semibold mb-3 text-[#66c0f4]">How it works</h2>
-			<ol class="list-decimal list-inside space-y-2 text-[#c7d5e0]">
-				<li>Create or join a league with an invite code.</li>
-				<li>Everyone joins the draft room; when all are present, the commissioner starts the draft.</li>
-				<li>Snake draft: pick games (Hit, Seasonal, Alt, Bust) in order. Timer per pick; draft pauses if you disconnect until you rejoin.</li>
-				<li>Daily scoring: your picks earn points from Steam owner growth and peak concurrent players, weighted by recency.</li>
-				<li class="text-[#a4d007]">Check standings and rosters on your league page.</li>
-			</ol>
-		</section>
-
-		<button
-			type="button"
-			onclick={handleSignIn}
-			disabled={loading}
-			class="rounded-lg bg-[#66c0f4] px-8 py-3 text-[#1b2838] font-medium hover:bg-[#8bb8e8] disabled:opacity-50 transition shadow-lg"
+<div
+	class="flex flex-col items-center justify-center space-y-12 py-12 text-center md:py-24 lg:py-32"
+>
+	<div class="max-w-3xl space-y-6">
+		<h1
+			class="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-4xl font-extrabold tracking-tighter text-transparent sm:text-5xl md:text-6xl lg:text-7xl"
 		>
-			{loading ? 'Signing in…' : 'Sign in with Google'}
-		</button>
+			Fantasy Steam League
+		</h1>
+		<p class="mx-auto max-w-[700px] text-lg text-muted-foreground md:text-xl">
+			Draft upcoming releases. Score points on <span class="font-semibold text-primary">Growth</span
+			>
+			& <span class="font-semibold text-accent">Peak Players</span>. Compete with friends in
+			real-time.
+		</p>
+		<div class="flex justify-center gap-4">
+			<Button
+				size="lg"
+				onclick={handleSignIn}
+				disabled={loading}
+				class="px-8 text-base shadow-lg shadow-primary/25"
+			>
+				{loading ? 'Signing in...' : 'Sign in with Google'}
+			</Button>
+		</div>
 	</div>
+
+	<Card class="w-full max-w-4xl border-muted bg-card/50 text-left backdrop-blur-sm">
+		<CardHeader>
+			<CardTitle class="text-primary">How to play</CardTitle>
+		</CardHeader>
+		<CardContent>
+			<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+				<div class="space-y-2">
+					<h3 class="font-bold text-foreground">1. Join a League</h3>
+					<p class="text-sm text-muted-foreground">
+						Create your own private league or join one using an invite code.
+					</p>
+				</div>
+				<div class="space-y-2">
+					<h3 class="font-bold text-foreground">2. The Draft</h3>
+					<p class="text-sm text-muted-foreground">
+						Enter the live snake draft. Pick your Hits, Busts, and Seasonal games in order.
+					</p>
+				</div>
+				<div class="space-y-2">
+					<h3 class="font-bold text-foreground">3. Score Points</h3>
+					<p class="text-sm text-muted-foreground">
+						Earn points daily based on real Steam data: owner growth and concurrent user counts.
+					</p>
+				</div>
+			</div>
+		</CardContent>
+	</Card>
 </div>

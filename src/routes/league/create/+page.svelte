@@ -3,11 +3,15 @@
 	import { currentUser, getCurrentUser } from '$lib/auth';
 	import { createLeague } from '$lib/db';
 	import type { LeagueSettings } from '$lib/db';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '$lib/components/ui/card';
 
 	let name = $state('');
 	let code = $state('');
+	let teamName = $state('My Studio');
 	let seasonalPicks = $state(4);
-	let pickTimer = $state(90);
 	let hypeMultiplier = $state(1);
 	let loading = $state(false);
 	let error = $state('');
@@ -28,10 +32,15 @@
 		try {
 			const settings: LeagueSettings = {
 				seasonalPicks,
-				pickTimer,
 				hypeMultiplier
 			};
-			const id = await createLeague(user.uid, name.trim(), code.trim() || generateCode(), settings);
+			const id = await createLeague(
+				user.uid,
+				name.trim(),
+				code.trim() || generateCode(),
+				settings,
+				teamName.trim() || 'My Studio'
+			);
 			await goto(`/league/${id}`);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to create league';
@@ -47,63 +56,42 @@
 
 <svelte:head><title>Create League</title></svelte:head>
 
-<div class="mx-auto max-w-md p-6">
-	<h1 class="text-2xl font-bold mb-6 text-[#c7d5e0]">Create a league</h1>
-	<form onsubmit={handleSubmit} class="space-y-4">
-		<div>
-			<label for="name" class="block text-sm font-medium mb-1 text-[#8f98a0]">League name</label>
-			<input
-				id="name"
-				type="text"
-				bind:value={name}
-				required
-				class="w-full rounded border border-[#3d5a80] bg-[#2a475e] px-3 py-2 text-[#c7d5e0] placeholder-[#8f98a0] focus:outline-none focus:ring-2 focus:ring-[#66c0f4]"
-			/>
-		</div>
-		<div>
-			<label for="code" class="block text-sm font-medium mb-1 text-[#8f98a0]">Invite code (leave blank to generate)</label>
-			<input
-				id="code"
-				type="text"
-				bind:value={code}
-				placeholder="e.g. STEAM26"
-				class="w-full rounded border border-[#3d5a80] bg-[#2a475e] px-3 py-2 text-[#c7d5e0] placeholder-[#8f98a0] focus:outline-none focus:ring-2 focus:ring-[#66c0f4]"
-			/>
-		</div>
-		<div>
-			<label for="seasonalPicks" class="block text-sm font-medium mb-1 text-[#8f98a0]">Seasonal picks per player</label>
-			<input
-				id="seasonalPicks"
-				type="number"
-				min="3"
-				max="5"
-				bind:value={seasonalPicks}
-				class="w-full rounded border border-[#3d5a80] bg-[#2a475e] px-3 py-2 text-[#c7d5e0] focus:outline-none focus:ring-2 focus:ring-[#66c0f4]"
-			/>
-		</div>
-		<div>
-			<label for="pickTimer" class="block text-sm font-medium mb-1 text-[#8f98a0]">Pick timer (seconds)</label>
-			<input
-				id="pickTimer"
-				type="number"
-				min="30"
-				max="300"
-				bind:value={pickTimer}
-				class="w-full rounded border border-[#3d5a80] bg-[#2a475e] px-3 py-2 text-[#c7d5e0] focus:outline-none focus:ring-2 focus:ring-[#66c0f4]"
-			/>
-		</div>
-		{#if error}
-			<p class="text-red-400 text-sm">{error}</p>
-		{/if}
-		<button
-			type="submit"
-			disabled={loading}
-			class="w-full rounded bg-[#66c0f4] px-4 py-2 text-[#1b2838] font-medium hover:bg-[#8bb8e8] disabled:opacity-50 transition-colors"
-		>
-			{loading ? 'Creating…' : 'Create league'}
-		</button>
-	</form>
-	<p class="mt-4 text-sm text-[#8f98a0]">
-		<a href="/dashboard" class="text-[#66c0f4] hover:text-[#8bb8e8] underline">Back to dashboard</a>
-	</p>
+<div class="mx-auto max-w-md py-10">
+	<Card>
+		<CardHeader>
+			<CardTitle class="text-2xl">Create a League</CardTitle>
+		</CardHeader>
+		<form onsubmit={handleSubmit}>
+			<CardContent class="space-y-4">
+				<div class="space-y-2">
+					<Label for="name">League Name</Label>
+					<Input id="name" bind:value={name} required placeholder="My Awesome League" />
+				</div>
+				<div class="space-y-2">
+					<Label for="teamName">Your Team Name</Label>
+					<Input id="teamName" bind:value={teamName} placeholder="My Studio" />
+				</div>
+				<div class="space-y-2">
+					<Label for="code"
+						>Invite Code <span class="text-xs font-normal text-muted-foreground">(Optional)</span
+						></Label
+					>
+					<Input id="code" bind:value={code} placeholder="Leave blank to auto-generate" />
+				</div>
+				<div class="space-y-2">
+					<Label for="seasonalPicks">Seasonal Picks</Label>
+					<Input id="seasonalPicks" type="number" min="3" max="5" bind:value={seasonalPicks} />
+				</div>
+				{#if error}
+					<p class="text-sm font-medium text-destructive">{error}</p>
+				{/if}
+			</CardContent>
+			<CardFooter class="flex flex-col gap-2">
+				<Button type="submit" class="w-full" disabled={loading}>
+					{loading ? 'Creating...' : 'Create League'}
+				</Button>
+				<Button variant="ghost" href="/dashboard" class="w-full">Cancel</Button>
+			</CardFooter>
+		</form>
+	</Card>
 </div>

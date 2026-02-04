@@ -1,105 +1,99 @@
 <script lang="ts">
-	import { getDraftableGames } from '$lib/db';
-	import type { Game } from '$lib/db';
+	import type { GameListEntry } from '$lib/db';
+	import { getGameList } from '$lib/db';
+	import { Card, CardContent } from '$lib/components/ui/card';
+	import { Badge } from '$lib/components/ui/badge';
+	import * as Select from '$lib/components/ui/select';
+	import { Calendar } from '@lucide/svelte';
 
-	let games = $state<(Game & { id: string })[]>([]);
-	let loading = $state(true);
-	let search = $state('');
-	let genre = $state('');
-	let releaseFrom = $state('');
-	let releaseTo = $state('');
+	let years = $state<string[]>(['2026']);
+	let selectedYear = $state<string>('');
+	let games = $state<GameListEntry[]>([]);
+	let loadingYears = $state(false);
+	let loadingGames = $state(false);
 
-	async function load() {
-		loading = true;
+	// Set default selection to the only available year if not already selected
+	if (!selectedYear && years.length > 0) {
+		selectedYear = years[0];
+	}
+
+	async function loadGames() {
+		const year = selectedYear ? parseInt(selectedYear, 10) : 0;
+		if (!year || Number.isNaN(year)) return;
+		loadingGames = true;
 		try {
-			const list = await getDraftableGames({
-				search: search || undefined,
-				genre: genre || undefined,
-				releaseFrom: releaseFrom || undefined,
-				releaseTo: releaseTo || undefined,
-				limitCount: 500
-			});
-			games = list;
+			games = await getGameList(year);
 		} finally {
-			loading = false;
+			loadingGames = false;
 		}
 	}
 
 	$effect(() => {
-		[search, genre, releaseFrom, releaseTo];
-		load();
+		if (selectedYear) {
+			loadGames();
+		}
 	});
 </script>
 
-<svelte:head><title>Browse games</title></svelte:head>
+<svelte:head><title>Games by year</title></svelte:head>
 
-<div class="mx-auto max-w-4xl p-6">
-	<h1 class="text-2xl font-bold mb-6 text-[#c7d5e0]">Upcoming Steam games</h1>
+<div class="space-y-6">
+	<div class="flex flex-col space-y-4">
+		<h1 class="text-3xl font-bold tracking-tight">Games by year</h1>
 
-	<div class="mb-6 flex flex-wrap gap-4">
-		<input
-			type="search"
-			placeholder="Search by name"
-			bind:value={search}
-			class="rounded border border-[#3d5a80] bg-[#2a475e] px-3 py-2 text-[#c7d5e0] placeholder-[#8f98a0] min-w-[200px] focus:outline-none focus:ring-2 focus:ring-[#66c0f4]"
-		/>
-		<input
-			type="text"
-			placeholder="Genre"
-			bind:value={genre}
-			class="rounded border border-[#3d5a80] bg-[#2a475e] px-3 py-2 text-[#c7d5e0] placeholder-[#8f98a0] focus:outline-none focus:ring-2 focus:ring-[#66c0f4]"
-		/>
-		<input
-			type="date"
-			placeholder="From"
-			bind:value={releaseFrom}
-			class="rounded border border-[#3d5a80] bg-[#2a475e] px-3 py-2 text-[#c7d5e0] focus:outline-none focus:ring-2 focus:ring-[#66c0f4]"
-		/>
-		<input
-			type="date"
-			placeholder="To"
-			bind:value={releaseTo}
-			class="rounded border border-[#3d5a80] bg-[#2a475e] px-3 py-2 text-[#c7d5e0] focus:outline-none focus:ring-2 focus:ring-[#66c0f4]"
-		/>
-		<button
-			type="button"
-			onclick={() => load()}
-			class="rounded bg-[#66c0f4] px-4 py-2 text-[#1b2838] font-medium hover:bg-[#8bb8e8] transition-colors"
-		>
-			Apply
-		</button>
+		<div class="flex flex-wrap items-center gap-4 rounded-lg border bg-card/50 p-4">
+			<div class="flex items-center gap-2">
+				<Calendar class="h-4 w-4 text-muted-foreground" />
+				<span class="text-sm font-medium text-muted-foreground">Year</span>
+			</div>
+			<Select.Root bind:value={selectedYear} type="single">
+				<Select.Trigger class="w-[140px]">
+					{selectedYear || 'Select year'}
+				</Select.Trigger>
+				<Select.Content>
+					{#each years as y}
+						<Select.Item value={String(y)} label={String(y)}>{y}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
+		</div>
 	</div>
 
-	{#if loading}
-		<p class="text-[#8f98a0]">Loading…</p>
-	{:else if games.length === 0}
-		<p class="text-[#8f98a0]">No games found. Add games via the populate script.</p>
-	{:else}
-		<ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			{#each games as game}
-				<li class="rounded border border-[#3d5a80] overflow-hidden bg-[#2a475e] hover:bg-[#3d6a8a] transition-colors">
-					{#if game.coverUrl}
-						<img
-							src={game.coverUrl}
-							alt=""
-							class="h-32 w-full object-cover"
-						/>
-					{:else}
-						<div class="h-32 w-full bg-[#1b2838] flex items-center justify-center text-[#8f98a0]">No cover</div>
-					{/if}
-					<div class="p-3">
-						<p class="font-medium truncate text-[#c7d5e0]" title={game.name}>{game.name}</p>
-						<p class="text-sm text-[#8f98a0]">
-							{game.releaseDate ?? 'TBA'} · {game.genres?.join(', ') || '—'}
-						</p>
-						<p class="text-xs text-[#66c0f4]">Steam ID: {game.id}</p>
-					</div>
-				</li>
+	{#if loadingYears}
+		<div class="rounded-lg border bg-muted/30 p-8 text-center text-muted-foreground">
+			Loading years…
+		</div>
+	{:else if years.length === 0}
+		<div class="rounded-lg border bg-muted/30 p-8 text-center text-muted-foreground">
+			No game lists available. Populate game lists for a year first.
+		</div>
+	{:else if !selectedYear}
+		<div class="rounded-lg border bg-muted/30 p-8 text-center text-muted-foreground">
+			Select a year.
+		</div>
+	{:else if loadingGames}
+		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			{#each Array(6) as _}
+				<div class="h-24 animate-pulse rounded-lg bg-muted/50"></div>
 			{/each}
-		</ul>
+		</div>
+	{:else if games.length === 0}
+		<div class="py-12 text-center text-muted-foreground">No games in the list for {selectedYear}.</div>
+	{:else}
+		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			{#each games as game}
+				<Card class="flex flex-col overflow-hidden border-muted transition-colors hover:border-primary/50">
+					<CardContent class="flex flex-1 flex-col gap-2 px-4">
+						<h3 class="line-clamp-1 text-lg font-semibold" title={game.name}>{game.name}</h3>
+						<div class="flex flex-wrap items-center gap-2">
+							<Badge variant="secondary" class="w-fit">
+								{game.releaseDate ?? 'TBA'}
+							</Badge>
+						</div>
+						<div class="mt-1 truncate font-mono text-xs text-muted-foreground">ID: {game.id}</div>
+					</CardContent>
+				</Card>
+			{/each}
+		</div>
 	{/if}
-
-	<p class="mt-6">
-		<a href="/dashboard" class="text-[#66c0f4] hover:text-[#8bb8e8] underline">Back to dashboard</a>
-	</p>
 </div>

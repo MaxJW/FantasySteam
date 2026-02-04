@@ -71,10 +71,12 @@ async function deleteCollection(db, collectionName) {
 	console.log(`Cleared ${collectionName} (${deleted} total).`);
 }
 
-// First release date: from start of current year (include upcoming and recent)
-function releaseDateFilter() {
-	const start = new Date(new Date().getFullYear(), 0, 1);
-	return Math.floor(start.getTime() / 1000);
+// First release date: within current year only (start and end)
+function releaseDateRange() {
+	const year = new Date().getFullYear();
+	const start = new Date(year, 0, 1);
+	const end = new Date(year, 11, 31, 23, 59, 59, 999);
+	return { since: Math.floor(start.getTime() / 1000), until: Math.floor(end.getTime() / 1000) };
 }
 
 async function main() {
@@ -92,13 +94,13 @@ async function main() {
 	await deleteCollection(db, 'gameLists');
 
 	const token = await getTwitchToken(clientId, clientSecret);
-	const since = releaseDateFilter();
+	const { since, until } = releaseDateRange();
 
-	// 1) Fetch all games: PC platform, release date this year or later (paginate with offset)
+	// 1) Fetch all games: PC platform, release date within current year only (paginate with offset)
 	const games = [];
 	let offset = 0;
 	while (true) {
-		const body = `fields name,first_release_date,cover,genres,summary,involved_companies; where platforms = (${STEAM_PLATFORM_ID}) & first_release_date >= ${since}; sort first_release_date asc; limit ${GAMES_PAGE_SIZE}; offset ${offset};`;
+		const body = `fields name,first_release_date,cover,genres,summary,involved_companies; where platforms = (${STEAM_PLATFORM_ID}) & first_release_date >= ${since} & first_release_date <= ${until}; sort first_release_date asc; limit ${GAMES_PAGE_SIZE}; offset ${offset};`;
 		const page = await igdbPost(token, clientId, 'games', body);
 		await sleep(IGDB_RATE_LIMIT_MS);
 		games.push(...page);
@@ -131,16 +133,24 @@ async function main() {
 		await sleep(IGDB_RATE_LIMIT_MS);
 	}
 
-	// 3) Fetch cover image_ids for games that have cover (batch to avoid huge queries)
+	// 3) Fetch cover image_ids and url (for extension) for games that have cover (batch to avoid huge queries)
 	const coverIds = [...new Set(games.map((g) => g.cover).filter(Boolean))];
-	let coverMap = new Map();
+	let coverMap = new Map(); // coverId -> { imageId, ext }
+	const allowedExt = new Set(['jpg', 'jpeg', 'png', 'webp']);
+	function extFromUrl(url) {
+		if (!url || typeof url !== 'string') return 'jpg';
+		const ext = url.split('.').pop().split('?')[0].toLowerCase();
+		return allowedExt.has(ext) ? ext : 'jpg';
+	}
 	for (let i = 0; i < coverIds.length; i += EXTERNAL_GAMES_BATCH) {
 		const batch = coverIds.slice(i, i + EXTERNAL_GAMES_BATCH);
-		const coverBody = `fields id,image_id; where id = (${batch.join(',')});`;
+		const coverBody = `fields id,image_id,url; where id = (${batch.join(',')});`;
 		try {
 			const covers = await igdbPost(token, clientId, 'covers', coverBody);
 			for (const c of covers) {
-				if (c.image_id) coverMap.set(c.id, c.image_id);
+				if (c.image_id) {
+					coverMap.set(c.id, { imageId: c.image_id, ext: extFromUrl(c.url) });
+				}
 			}
 		} catch (e) {
 			console.warn('covers batch failed:', e.message);
@@ -206,9 +216,9 @@ async function main() {
 		const releaseDate = g.first_release_date
 			? new Date(g.first_release_date * 1000).toISOString().slice(0, 10)
 			: null;
-		const coverImageId = g.cover && coverMap.get(g.cover);
-		const coverUrl = coverImageId
-			? `https://images.igdb.com/igdb/image/upload/t_cover_big/${coverImageId}.jpg`
+		const coverData = g.cover && coverMap.get(g.cover);
+		const coverUrl = coverData
+			? `https://images.igdb.com/igdb/image/upload/t_cover_big/${coverData.imageId}.${coverData.ext}`
 			: null;
 		const genreNames = (g.genres || []).map((id) => genreMap.get(id)).filter(Boolean);
 

@@ -2,6 +2,17 @@
 	import { goto } from '$app/navigation';
 	import { currentUser } from '$lib/auth';
 	import { getLeaguesForUser } from '$lib/db';
+	import { Button } from '$lib/components/ui/button';
+	import {
+		Card,
+		CardHeader,
+		CardTitle,
+		CardContent,
+		CardDescription,
+		CardFooter
+	} from '$lib/components/ui/card';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Plus, LogIn } from '@lucide/svelte';
 
 	let leagues = $state<Awaited<ReturnType<typeof getLeaguesForUser>>>([]);
 	let loading = $state(true);
@@ -27,36 +38,58 @@
 
 <svelte:head><title>Dashboard</title></svelte:head>
 
-<div class="mx-auto max-w-2xl p-6">
-	<h1 class="text-2xl font-bold mb-6 text-[#c7d5e0]">My leagues</h1>
+<div class="mx-auto max-w-5xl space-y-8">
+	<div class="flex items-center justify-between">
+		<h1 class="text-3xl font-bold tracking-tight">My Leagues</h1>
+		<div class="flex gap-2">
+			<Button variant="outline" href="/league/join" class="gap-2">
+				<LogIn class="h-4 w-4" /> Join
+			</Button>
+			<Button href="/league/create" class="gap-2">
+				<Plus class="h-4 w-4" /> Create
+			</Button>
+		</div>
+	</div>
+
 	{#if loading}
-		<p class="text-[#8f98a0]">Loading…</p>
-	{:else if leagues.length === 0}
-		<p class="text-[#8f98a0] mb-4">You’re not in any leagues yet.</p>
-		<p class="text-[#c7d5e0]">
-			<a href="/league/create" class="text-[#66c0f4] hover:text-[#8bb8e8] underline">Create a league</a>
-			or
-			<a href="/league/join" class="text-[#66c0f4] hover:text-[#8bb8e8] underline">join with a code</a>.
-		</p>
-	{:else}
-		<ul class="space-y-3">
-			{#each leagues as league}
-				<li>
-					<a
-						href="/league/{league.id}"
-						class="block rounded border border-[#3d5a80] p-4 bg-[#2a475e] hover:bg-[#3d6a8a] transition-colors"
-					>
-						<span class="font-medium text-[#c7d5e0]">{league.name}</span>
-						<span class="text-sm text-[#8f98a0] ml-2">({league.code})</span>
-						<span class="text-sm text-[#a4d007] ml-2">— {league.status}</span>
-					</a>
-				</li>
+		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+			{#each Array(3) as _}
+				<div class="h-40 animate-pulse rounded-xl bg-muted/50"></div>
 			{/each}
-		</ul>
-		<p class="mt-6 text-[#c7d5e0]">
-			<a href="/league/create" class="text-[#66c0f4] hover:text-[#8bb8e8] underline">Create league</a>
-			·
-			<a href="/league/join" class="text-[#66c0f4] hover:text-[#8bb8e8] underline">Join league</a>
-		</p>
+		</div>
+	{:else if leagues.length === 0}
+		<Card class="border-2 border-dashed bg-transparent py-12 text-center">
+			<CardContent class="space-y-4">
+				<p class="text-muted-foreground">You don't have any active leagues.</p>
+				<Button href="/league/create">Get Started</Button>
+			</CardContent>
+		</Card>
+	{:else}
+		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+			{#each leagues as league}
+				<a href="/league/{league.id}" class="group block">
+					<Card class="h-full transition-all hover:border-primary/50 hover:bg-card/80">
+						<CardHeader>
+							<div class="flex items-start justify-between">
+								<CardTitle class="text-xl transition-colors group-hover:text-primary"
+									>{league.name}</CardTitle
+								>
+								<Badge variant={league.status === 'active' ? 'default' : 'secondary'}
+									>{league.status}</Badge
+								>
+							</div>
+							<CardDescription>Season {league.season}</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<p class="text-sm text-muted-foreground">
+								Code: <span class="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground"
+									>{league.code}</span
+								>
+							</p>
+						</CardContent>
+					</Card>
+				</a>
+			{/each}
+		</div>
 	{/if}
 </div>

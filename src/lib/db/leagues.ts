@@ -5,9 +5,9 @@ import {
 	getDocs,
 	setDoc,
 	updateDoc,
+	deleteDoc,
 	query,
 	where,
-	writeBatch,
 	serverTimestamp,
 	type DocumentReference
 } from 'firebase/firestore';
@@ -73,7 +73,8 @@ export async function createLeague(
 	commissionerId: string,
 	name: string,
 	code: string,
-	settings: LeagueSettings
+	settings: LeagueSettings,
+	teamName: string = 'My Studio'
 ): Promise<string> {
 	const ref = doc(collection(db, LEAGUES));
 	const league: League = {
@@ -93,7 +94,7 @@ export async function createLeague(
 		altPicks: []
 	};
 	await setDoc(teamRef(ref.id, commissionerId), {
-		name: 'My Studio',
+		name: teamName.trim() || 'My Studio',
 		picks: emptyPicks,
 		score: 0
 	});
@@ -101,26 +102,31 @@ export async function createLeague(
 	return ref.id;
 }
 
-export async function joinLeague(leagueId: string, userId: string): Promise<void> {
+export async function joinLeague(
+	leagueId: string,
+	userId: string,
+	teamName: string = 'My Studio'
+): Promise<void> {
 	const leagueSnap = await getDoc(leagueRef(leagueId));
 	if (!leagueSnap.exists()) throw new Error('League not found');
 	const league = leagueSnap.data() as League;
 	if (league.members.includes(userId)) return;
 
-	const batch = writeBatch(db);
-	batch.update(leagueRef(leagueId), {
+	// Update league first so Firestore rules see the user as a member when we create the team.
+	// (In a batch, each op is evaluated against pre-batch state, so a single batch would deny the team create.)
+	await updateDoc(leagueRef(leagueId), {
 		members: [...league.members, userId]
 	});
+
 	const emptyPicks: TeamPicks = {
 		seasonalPicks: [],
 		altPicks: []
 	};
-	batch.set(teamRef(leagueId, userId), {
-		name: 'My Studio',
+	await setDoc(teamRef(leagueId, userId), {
+		name: teamName.trim() || 'My Studio',
 		picks: emptyPicks,
 		score: 0
 	});
-	await batch.commit();
 }
 
 export async function updateLeagueSettings(
@@ -129,7 +135,6 @@ export async function updateLeagueSettings(
 ): Promise<void> {
 	const updates: Record<string, unknown> = {};
 	if (settings.seasonalPicks !== undefined) updates['settings.seasonalPicks'] = settings.seasonalPicks;
-	if (settings.pickTimer !== undefined) updates['settings.pickTimer'] = settings.pickTimer;
 	if (settings.hypeMultiplier !== undefined) updates['settings.hypeMultiplier'] = settings.hypeMultiplier;
 	if (Object.keys(updates).length === 0) return;
 	await updateDoc(leagueRef(leagueId), updates);
@@ -141,4 +146,8 @@ export async function updateLeagueSeason(leagueId: string, season: string): Prom
 
 export async function updateTeamName(leagueId: string, userId: string, name: string): Promise<void> {
 	await setDoc(teamRef(leagueId, userId), { name }, { merge: true });
+}
+
+export async function deleteLeague(leagueId: string): Promise<void> {
+	await deleteDoc(leagueRef(leagueId));
 }

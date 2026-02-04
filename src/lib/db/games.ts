@@ -30,6 +30,16 @@ export async function getGame(gameId: string): Promise<(Game & { id: string }) |
 	return { id: snap.id, ...snap.data() } as Game & { id: string };
 }
 
+/** Returns available years that have a game list (document IDs in gameLists). */
+export async function getGameListYears(): Promise<number[]> {
+	const snap = await getDocs(collection(db, GAME_LISTS));
+	const years = snap.docs
+		.map((d) => parseInt(d.id, 10))
+		.filter((y) => !Number.isNaN(y))
+		.sort((a, b) => b - a);
+	return years;
+}
+
 /** One doc read for the full list of games in a year. Full details via getGame(id). */
 export async function getGameList(year: number): Promise<GameListEntry[]> {
 	const snap = await getDoc(doc(db, GAME_LISTS, String(year)));
