@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { currentUser, getCurrentUser } from '$lib/auth';
+	import { getCurrentUser } from '$lib/auth';
 	import { createLeague } from '$lib/db';
 	import type { LeagueSettings } from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
@@ -14,13 +14,6 @@
 	let seasonalPicks = $state(4);
 	let loading = $state(false);
 	let error = $state('');
-
-	$effect(() => {
-		const unsub = currentUser.subscribe((u) => {
-			if (u === null) goto('/');
-		});
-		return unsub;
-	});
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();

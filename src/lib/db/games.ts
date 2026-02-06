@@ -72,7 +72,8 @@ export function getGameListPage(
 	full = [...full].sort((a, b) => {
 		let cmp = 0;
 		if (sortBy === 'id') cmp = (a.id ?? '').localeCompare(b.id ?? '');
-		else if (sortBy === 'name') cmp = (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' });
+		else if (sortBy === 'name')
+			cmp = (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' });
 		else if (sortBy === 'date') cmp = (a.releaseDate ?? '').localeCompare(b.releaseDate ?? '');
 		else {
 			// score: treat null/undefined as -Infinity so they sort last

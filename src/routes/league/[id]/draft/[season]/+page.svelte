@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
-	import { currentUser, getCurrentUser } from '$lib/auth';
+	import { getCurrentUser } from '$lib/auth';
 	import {
 		getLeague,
 		getGameListPage,
@@ -14,7 +13,7 @@
 		setPresence,
 		removePresence,
 		startDraft,
-		skipCurrentPick, // changed from advanceToNextPick
+		skipCurrentPick,
 		submitPick,
 		getCurrentPickUserId,
 		getSnakeOrderForRound,
@@ -27,28 +26,21 @@
 	// UI Components
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import * as Card from '$lib/components/ui/card';
-	import { Badge } from '$lib/components/ui/badge';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { GameDetailDialog } from '$lib/components/game-detail-dialog';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
-	import { Separator } from '$lib/components/ui/separator';
 	import * as Avatar from '$lib/components/ui/avatar';
 
 	// Icons
 	import {
-		Loader2,
-		Play,
-		SkipForward,
-		Plus,
+		LoaderCircle,
 		Search,
 		ArrowLeft,
 		Snowflake,
 		Target,
 		Bomb,
 		Shuffle,
-		HelpCircle,
-		Trophy
+		CircleQuestionMark
 	} from '@lucide/svelte';
 
 	// -----------------------------------------------------------------------
@@ -139,14 +131,6 @@
 		leagueId = params?.id ?? '';
 		season = params?.season ?? '';
 	});
-
-	$effect(() => {
-		const unsub = currentUser.subscribe((u) => {
-			if (u === null) goto('/');
-		});
-		return unsub;
-	});
-
 	$effect(() => {
 		if (!leagueId) return;
 		getLeague(leagueId).then((l) => (league = l));
@@ -476,7 +460,7 @@
 <div class="flex h-[calc(100vh-8rem)] flex-col space-y-6">
 	{#if !league || !draft}
 		<div class="flex h-full flex-col items-center justify-center">
-			<Loader2 class="mb-4 h-10 w-10 animate-spin text-primary" />
+			<LoaderCircle class="mb-4 h-10 w-10 animate-spin text-primary" />
 			<p class="text-muted-foreground">Loading draft room...</p>
 		</div>
 	{:else}
@@ -485,21 +469,26 @@
 				<div class="sticky top-0 z-10 flex min-w-max gap-3 border-b bg-muted/90 p-3 backdrop-blur">
 					{#each league.members as memberId}
 						{@const isMe = me?.uid === memberId}
+						{@const isCurrentPickColumn = currentPickUserId === memberId}
 						<div
-							class="flex w-[200px] min-w-[200px] flex-shrink-0 items-center gap-2 rounded-lg border bg-card px-2 py-2 shadow-sm"
+							class="flex min-w-[200px] flex-1 items-center justify-center rounded-lg border px-2 py-2 shadow-sm {isCurrentPickColumn
+								? 'border-primary/30 bg-primary/10'
+								: 'bg-card'}"
 						>
-							<Avatar.Root class="h-8 w-8 flex-shrink-0">
-								<Avatar.Fallback class={isMe ? 'bg-primary text-primary-foreground' : ''}
-									>{getInitials(memberDisplayName(memberId))}</Avatar.Fallback
-								>
-							</Avatar.Root>
-							<div class="min-w-0 flex-1 overflow-hidden">
-								<p
-									class="truncate text-sm font-medium {isMe ? 'text-primary' : ''}"
-									title={memberDisplayName(memberId) || undefined}
-								>
-									{memberDisplayName(memberId) || '…'}
-								</p>
+							<div class="flex max-w-full min-w-0 items-center gap-2">
+								<Avatar.Root class="h-8 w-8 shrink-0">
+									<Avatar.Fallback class={isMe ? 'bg-primary text-primary-foreground' : ''}
+										>{getInitials(memberDisplayName(memberId))}</Avatar.Fallback
+									>
+								</Avatar.Root>
+								<div class="min-w-0 overflow-hidden">
+									<p
+										class="truncate text-sm font-medium {isMe ? 'text-primary' : ''}"
+										title={memberDisplayName(memberId) || undefined}
+									>
+										{memberDisplayName(memberId) || '…'}
+									</p>
+								</div>
 							</div>
 						</div>
 					{/each}
@@ -514,15 +503,20 @@
 								{@const isMyCell = me?.uid === memberId}
 								{@const isActive = data?.isCurrent}
 								{@const hasPick = !!data?.pick}
+								{@const isCurrentPickColumn = currentPickUserId === memberId}
 
 								<div
-									class="group relative min-h-[100px] w-[200px] min-w-[200px] shrink-0 overflow-hidden rounded-lg border bg-card shadow-sm transition-colors {isActive
+									class="group relative min-h-[100px] min-w-[200px] flex-1 overflow-hidden rounded-lg border shadow-sm transition-colors {isActive
 										? 'ring-2 ring-primary ring-inset'
-										: 'border-border'} {hasPick ? 'bg-card' : 'bg-muted/5'} "
+										: 'border-border'} {isCurrentPickColumn
+										? 'bg-primary/5'
+										: hasPick
+											? 'bg-card'
+											: 'bg-muted/5'}"
 								>
 									{#if hasPick && data?.pick}
 										{@const config = pickConfig[data.pick.pickType] || {
-											icon: HelpCircle,
+											icon: CircleQuestionMark,
 											color: 'text-gray-500',
 											label: 'Unknown'
 										}}
@@ -643,7 +637,7 @@
 						</div>
 						{#if gameListLoading}
 							<div class="flex flex-1 items-center justify-center">
-								<Loader2 class="animate-spin text-primary" />
+								<LoaderCircle class="animate-spin text-primary" />
 							</div>
 						{:else}
 							<ScrollArea class="min-h-0 flex-1">

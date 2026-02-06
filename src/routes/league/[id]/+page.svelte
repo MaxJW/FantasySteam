@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
-	import { currentUser, getCurrentUser } from '$lib/auth';
+	import { getCurrentUser } from '$lib/auth';
 	import {
 		getLeague,
 		getTeam,
@@ -20,7 +20,7 @@
 	import * as Table from '$lib/components/ui/table';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import { Settings, Play, Gamepad2, Trash2 } from '@lucide/svelte';
+	import { Settings, Play, Trash2 } from '@lucide/svelte';
 
 	let league = $state<Awaited<ReturnType<typeof getLeague>>>(null);
 	let myTeam = $state<Awaited<ReturnType<typeof getTeam>>>(null);
@@ -40,13 +40,6 @@
 		const id = get(page).params?.id;
 		leagueId = id;
 		if (id) loading = true;
-	});
-
-	$effect(() => {
-		const unsub = currentUser.subscribe((u) => {
-			if (u === null) goto('/');
-		});
-		return unsub;
 	});
 
 	$effect(() => {
@@ -332,7 +325,7 @@
 							<Card.Header class="bg-muted/30 px-4 py-3">
 								<Card.Title class="text-base">{team.name}</Card.Title>
 							</Card.Header>
-							<Card.Content class="space-y-2 p-4 text-sm">
+							<Card.Content class="space-y-4 p-4 text-sm">
 								{#if team.picks?.hitPick}
 									<div class="flex justify-between">
 										<span class="text-muted-foreground">Hit</span>

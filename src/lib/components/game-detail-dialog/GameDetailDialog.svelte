@@ -2,7 +2,7 @@
 	import type { Game } from '$lib/db';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import GameDetailContent from './GameDetailContent.svelte';
-	import { Loader2 } from '@lucide/svelte';
+	import { LoaderCircle } from '@lucide/svelte';
 
 	interface Props {
 		/** When true, render only the content (no Dialog wrapper). Use inside an existing dialog (e.g. draft). */
@@ -33,7 +33,7 @@
 {#if embedded}
 	{#if loading}
 		<div class="flex h-full items-center justify-center">
-			<Loader2 class="animate-spin text-primary" />
+			<LoaderCircle class="animate-spin text-primary" />
 		</div>
 	{:else if game}
 		{#if footer}
@@ -61,7 +61,7 @@
 			<div class="max-h-[70vh] overflow-y-auto px-6 py-5">
 				{#if loading}
 					<div class="flex min-h-[200px] items-center justify-center">
-						<Loader2 class="h-8 w-8 animate-spin text-primary" />
+						<LoaderCircle class="h-8 w-8 animate-spin text-primary" />
 					</div>
 				{:else if game}
 					<GameDetailContent {game} {footer} />

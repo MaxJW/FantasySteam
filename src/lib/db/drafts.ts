@@ -100,14 +100,14 @@ export async function startDraft(leagueId: string, season: string): Promise<void
 	const snap = await getDoc(ref);
 	if (!snap.exists()) throw new Error('Draft not found');
 	const data = snap.data() as Draft;
-	
+
 	const currentPick: CurrentPick = {
 		round: 1,
 		position: 0,
 		userId: data.order[0] ?? '',
 		expiresAt: null
 	};
-	
+
 	await updateDoc(ref, {
 		status: 'active',
 		currentPick
@@ -157,7 +157,7 @@ export async function submitPick(
 ): Promise<void> {
 	const dRef = draftRef(leagueId, season);
 	const tRef = teamRef(leagueId, userId);
-	
+
 	// Pre-fetch league for settings (could also be passed in to save a read if static)
 	const league = await getLeague(leagueId);
 	if (!league) throw new Error('League not found');
@@ -206,7 +206,7 @@ export async function submitPick(
 		if (teamSnap.exists()) {
 			const teamData = teamSnap.data();
 			const teamPicks = teamData.picks ?? {};
-			
+
 			if (pickType === 'hitPick') {
 				tx.update(tRef, { 'picks.hitPick': gameId });
 			} else if (pickType === 'bustPick') {
@@ -227,7 +227,7 @@ export async function submitPick(
 		if (nextPick) {
 			tx.update(dRef, { currentPick: nextPick });
 		} else {
-			tx.update(dRef, { 
+			tx.update(dRef, {
 				currentPick: null,
 				status: 'completed'
 			});
@@ -238,10 +238,7 @@ export async function submitPick(
 /**
  * Admin function to force skip the current player.
  */
-export async function skipCurrentPick(
-	leagueId: string,
-	season: string
-): Promise<void> {
+export async function skipCurrentPick(leagueId: string, season: string): Promise<void> {
 	const dRef = draftRef(leagueId, season);
 	const league = await getLeague(leagueId);
 	const seasonalPicksCount = league?.settings?.seasonalPicks ?? 6;
@@ -249,7 +246,7 @@ export async function skipCurrentPick(
 	await runTransaction(db, async (tx) => {
 		const draftSnap = await tx.get(dRef);
 		if (!draftSnap.exists()) return;
-		
+
 		const draft = draftSnap.data() as Draft;
 		if (draft.status !== 'active' || !draft.currentPick) return;
 
@@ -257,8 +254,9 @@ export async function skipCurrentPick(
 		// We use currentPick logic to determine where we are, then move forward
 		// Current: draft.currentPick (Round R, Pos P)
 		// Flat index = (R-1)*OrderLength + P
-		
-		const currentFlatIndex = ((draft.currentPick.round - 1) * draft.order.length) + draft.currentPick.position;
+
+		const currentFlatIndex =
+			(draft.currentPick.round - 1) * draft.order.length + draft.currentPick.position;
 		const nextFlatIndex = currentFlatIndex + 1;
 
 		const nextPick = calculateNextPick(draft.order, nextFlatIndex, seasonalPicksCount);

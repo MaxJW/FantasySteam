@@ -20,12 +20,12 @@ const DELAY_MS = 1500; // 1.5s delay to be polite to Steam
 /* ---------- Firebase Setup ---------- */
 const cred = process.env.FIREBASE_SERVICE_ACCOUNT;
 if (cred) {
-  admin.initializeApp({ credential: admin.credential.cert(JSON.parse(cred)) });
+	admin.initializeApp({ credential: admin.credential.cert(JSON.parse(cred)) });
 } else {
-  const keyPath = join(__dirname, '..', 'service-account.json');
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(readFileSync(keyPath, 'utf8')))
-  });
+	const keyPath = join(__dirname, '..', 'service-account.json');
+	admin.initializeApp({
+		credential: admin.credential.cert(JSON.parse(readFileSync(keyPath, 'utf8')))
+	});
 }
 
 const db = admin.firestore();

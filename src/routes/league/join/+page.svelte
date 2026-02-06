@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { currentUser, getCurrentUser } from '$lib/auth';
+	import { getCurrentUser } from '$lib/auth';
 	import { getLeagueByCode, joinLeague } from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -11,13 +11,6 @@
 	let teamName = $state('My Studio');
 	let loading = $state(false);
 	let error = $state('');
-
-	$effect(() => {
-		const unsub = currentUser.subscribe((u) => {
-			if (u === null) goto('/');
-		});
-		return unsub;
-	});
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { currentUser } from '$lib/auth';
 	import { getLeaguesForUser } from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
@@ -9,13 +8,6 @@
 
 	let leagues = $state<Awaited<ReturnType<typeof getLeaguesForUser>>>([]);
 	let loading = $state(true);
-
-	$effect(() => {
-		const unsub = currentUser.subscribe((u) => {
-			if (u === null) goto('/');
-		});
-		return unsub;
-	});
 
 	$effect(() => {
 		const unsub = currentUser.subscribe((user) => {
