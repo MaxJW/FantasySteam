@@ -3,14 +3,7 @@
 	import { currentUser } from '$lib/auth';
 	import { getLeaguesForUser } from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
-	import {
-		Card,
-		CardHeader,
-		CardTitle,
-		CardContent,
-		CardDescription,
-		CardFooter
-	} from '$lib/components/ui/card';
+	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Plus, LogIn } from '@lucide/svelte';
 
@@ -58,36 +51,36 @@
 			{/each}
 		</div>
 	{:else if leagues.length === 0}
-		<Card class="border-2 border-dashed bg-transparent py-12 text-center">
-			<CardContent class="space-y-4">
+		<Card.Root class="border-2 border-dashed bg-transparent py-12 text-center">
+			<Card.Content class="space-y-4">
 				<p class="text-muted-foreground">You don't have any active leagues.</p>
 				<Button href="/league/create">Get Started</Button>
-			</CardContent>
-		</Card>
+			</Card.Content>
+		</Card.Root>
 	{:else}
 		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 			{#each leagues as league}
 				<a href="/league/{league.id}" class="group block">
-					<Card class="h-full transition-all hover:border-primary/50 hover:bg-card/80">
-						<CardHeader>
+					<Card.Root class="h-full transition-all hover:border-primary/50 hover:bg-card/80">
+						<Card.Header>
 							<div class="flex items-start justify-between">
-								<CardTitle class="text-xl transition-colors group-hover:text-primary"
-									>{league.name}</CardTitle
+								<Card.Title class="text-xl transition-colors group-hover:text-primary"
+									>{league.name}</Card.Title
 								>
 								<Badge variant={league.status === 'active' ? 'default' : 'secondary'}
 									>{league.status}</Badge
 								>
 							</div>
-							<CardDescription>Season {league.season}</CardDescription>
-						</CardHeader>
-						<CardContent>
+							<Card.Description>Season {league.season}</Card.Description>
+						</Card.Header>
+						<Card.Content>
 							<p class="text-sm text-muted-foreground">
 								Code: <span class="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground"
 									>{league.code}</span
 								>
 							</p>
-						</CardContent>
-					</Card>
+						</Card.Content>
+					</Card.Root>
 				</a>
 			{/each}
 		</div>

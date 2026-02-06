@@ -9,20 +9,13 @@
 		getTeams,
 		getGame,
 		updateLeagueSettings,
-		updateLeagueSeason,
 		deleteLeague
 	} from '$lib/db';
 	import type { Team } from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import {
-		Card,
-		CardHeader,
-		CardTitle,
-		CardContent,
-		CardDescription
-	} from '$lib/components/ui/card';
+	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Table from '$lib/components/ui/table';
 	import { Separator } from '$lib/components/ui/separator';
@@ -39,6 +32,7 @@
 	let editSeasonalPicks = $state(4);
 	let editSeason = $state('');
 	let savingSettings = $state(false);
+	let settingsJustSaved = $state(false);
 	let deleteDialogOpen = $state(false);
 	let deleting = $state(false);
 
@@ -110,12 +104,26 @@
 
 	const isCommissioner = $derived(!!(league && getCurrentUser()?.uid === league.commissionerId));
 
-	async function openSettings() {
+	const settingsHasUnsavedChanges = $derived(
+		!!(league && editSeasonalPicks !== (league.settings?.seasonalPicks ?? 4))
+	);
+
+	function resetSettingsForm() {
 		if (league) {
 			editSeasonalPicks = league.settings?.seasonalPicks ?? 4;
 			editSeason = league.season ?? '';
 		}
+		settingsJustSaved = false;
+	}
+
+	function openSettings() {
+		resetSettingsForm();
 		settingsOpen = true;
+	}
+
+	function closeSettings() {
+		resetSettingsForm();
+		settingsOpen = false;
 	}
 
 	async function saveSettings() {
@@ -125,17 +133,15 @@
 			await updateLeagueSettings(leagueId, {
 				seasonalPicks: editSeasonalPicks
 			});
-			if (editSeason.trim()) await updateLeagueSeason(leagueId, editSeason.trim());
 			if (league)
 				league = {
 					...league,
 					settings: {
 						...league.settings,
 						seasonalPicks: editSeasonalPicks
-					},
-					season: editSeason.trim() || league.season
+					}
 				};
-			settingsOpen = false;
+			settingsJustSaved = true;
 		} finally {
 			savingSettings = false;
 		}
@@ -150,7 +156,7 @@
 			settingsOpen = false;
 			goto('/dashboard');
 		} catch (err) {
-			// could set error state
+			console.error(err);
 		} finally {
 			deleting = false;
 		}
@@ -186,11 +192,12 @@
 				>
 					<Play class="h-4 w-4" /> Enter Draft Room
 				</Button>
-				<Button variant="outline" href="/games" class="gap-2">
-					<Gamepad2 class="h-4 w-4" /> Browse Games
-				</Button>
 				{#if isCommissioner}
-					<Button variant="ghost" onclick={openSettings} size="icon">
+					<Button
+						variant={settingsOpen ? 'secondary' : 'ghost'}
+						size="icon"
+						onclick={() => (settingsOpen ? closeSettings() : openSettings())}
+					>
 						<Settings class="h-4 w-4" />
 					</Button>
 				{/if}
@@ -198,52 +205,69 @@
 		</div>
 
 		{#if settingsOpen && isCommissioner}
-			<Card class="border-primary/50 bg-primary/5">
-				<CardHeader>
-					<CardTitle class="text-base">League Settings</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div class="flex flex-wrap items-end gap-4">
-						<div class="w-32">
-							<Label for="editSeason">Season</Label>
-							<Input id="editSeason" bind:value={editSeason} placeholder="2026" />
-						</div>
-						<div class="w-32">
-							<Label for="seasonalPicks">Picks/Player</Label>
-							<Input
-								id="seasonalPicks"
-								type="number"
-								min="3"
-								max="5"
-								bind:value={editSeasonalPicks}
-							/>
-						</div>
-						<div class="flex gap-2">
-							<Button onclick={saveSettings} disabled={savingSettings}
-								>{savingSettings ? 'Saving...' : 'Save'}</Button
-							>
-							<Button variant="ghost" onclick={() => (settingsOpen = false)}>Cancel</Button>
+			<Card.Root class="overflow-hidden border-primary/30 shadow-sm">
+				<Card.Header class="border-b border-border/50 bg-muted/20 px-6">
+					<Card.Title class="text-lg font-semibold">League Settings</Card.Title>
+					<Card.Description>Manage season picks and league options.</Card.Description>
+				</Card.Header>
+				<Card.Content class="px-6">
+					<div class="space-y-4">
+						<h3 class="text-sm font-medium text-foreground">General</h3>
+						<div class="flex flex-wrap items-end gap-6">
+							<div class="space-y-2">
+								<Label for="editSeason" class="text-muted-foreground">Season</Label>
+								<Input
+									id="editSeason"
+									value={editSeason}
+									readonly
+									class="w-28 bg-muted/50 font-mono read-only:cursor-default read-only:opacity-100"
+								/>
+							</div>
+							<div class="space-y-2">
+								<Label for="seasonalPicks">Picks per player</Label>
+								<Input
+									id="seasonalPicks"
+									type="number"
+									min="3"
+									max="5"
+									bind:value={editSeasonalPicks}
+									class="w-28"
+								/>
+							</div>
+							<div class="flex items-center gap-2 pb-0.5">
+								{#if settingsHasUnsavedChanges}
+									<Button onclick={saveSettings} disabled={savingSettings}>
+										{savingSettings ? 'Saving...' : 'Save'}
+									</Button>
+								{:else if settingsJustSaved}
+									<span class="mb-2 text-sm text-muted-foreground">Saved changes</span>
+								{/if}
+							</div>
 						</div>
 					</div>
-					<Separator class="my-4" />
-					<div class="flex items-center justify-between gap-4">
-						<div>
-							<p class="text-sm font-medium text-destructive">Delete league</p>
-							<p class="text-xs text-muted-foreground"
-								>This cannot be undone. The league and its code will be removed.</p
+
+					<Separator class="my-8" />
+
+					<div class="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+						<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+							<div>
+								<p class="text-sm font-medium text-destructive">Delete league</p>
+								<p class="mt-0.5 text-xs text-muted-foreground">
+									This cannot be undone. The league and its code will be removed.
+								</p>
+							</div>
+							<Button
+								variant="destructive"
+								size="sm"
+								onclick={() => (deleteDialogOpen = true)}
+								class="shrink-0 gap-2"
 							>
+								<Trash2 class="h-4 w-4" /> Delete league
+							</Button>
 						</div>
-						<Button
-							variant="destructive"
-							size="sm"
-							onclick={() => (deleteDialogOpen = true)}
-							class="gap-2"
-						>
-							<Trash2 class="h-4 w-4" /> Delete league
-						</Button>
 					</div>
-				</CardContent>
-			</Card>
+				</Card.Content>
+			</Card.Root>
 
 			<Dialog.Root bind:open={deleteDialogOpen}>
 				<Dialog.Content>
@@ -253,7 +277,7 @@
 							This will permanently delete <strong>{league?.name}</strong>. You cannot undo this.
 						</Dialog.Description>
 					</Dialog.Header>
-					<Dialog.Footer class="gap-2 sm:gap-0">
+					<Dialog.Footer class="gap-2">
 						<Button variant="outline" onclick={() => (deleteDialogOpen = false)} disabled={deleting}
 							>Cancel</Button
 						>
@@ -269,11 +293,11 @@
 			<div class="space-y-6">
 				<h2 class="text-xl font-bold text-primary">Standings</h2>
 				{#if teams.length === 0}
-					<Card class="border-dashed">
-						<CardContent class="py-8 text-center text-muted-foreground">
+					<Card.Root class="border-dashed">
+						<Card.Content class="py-8 text-center text-muted-foreground">
 							No teams yet. Wait for the draft!
-						</CardContent>
-					</Card>
+						</Card.Content>
+					</Card.Root>
 				{:else}
 					<div class="rounded-md border bg-card">
 						<Table.Root>
@@ -304,11 +328,11 @@
 				<h2 class="text-xl font-bold">Rosters</h2>
 				<div class="space-y-4">
 					{#each teams as team}
-						<Card>
-							<CardHeader class="bg-muted/30 px-4 py-3">
-								<CardTitle class="text-base">{team.name}</CardTitle>
-							</CardHeader>
-							<CardContent class="space-y-2 p-4 text-sm">
+						<Card.Root class="py-0">
+							<Card.Header class="bg-muted/30 px-4 py-3">
+								<Card.Title class="text-base">{team.name}</Card.Title>
+							</Card.Header>
+							<Card.Content class="space-y-2 p-4 text-sm">
 								{#if team.picks?.hitPick}
 									<div class="flex justify-between">
 										<span class="text-muted-foreground">Hit</span>
@@ -317,7 +341,7 @@
 								{/if}
 								{#if team.picks?.bustPick}
 									<div class="flex justify-between">
-										<span class="text-muted-foreground">Bust</span>
+										<span class="text-muted-foreground">Bomb</span>
 										<span class="font-medium text-destructive">{gameName(team.picks.bustPick)}</span
 										>
 									</div>
@@ -333,8 +357,8 @@
 										{/each}
 									</ul>
 								{/if}
-							</CardContent>
-						</Card>
+							</Card.Content>
+						</Card.Root>
 					{/each}
 				</div>
 			</div>

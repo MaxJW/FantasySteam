@@ -5,7 +5,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '$lib/components/ui/card';
+	import * as Card from '$lib/components/ui/card';
 
 	let code = $state('');
 	let teamName = $state('My Studio');
@@ -45,12 +45,12 @@
 <svelte:head><title>Join League</title></svelte:head>
 
 <div class="mx-auto max-w-md py-10">
-	<Card>
-		<CardHeader>
-			<CardTitle class="text-2xl">Join a League</CardTitle>
-		</CardHeader>
+	<Card.Root>
+		<Card.Header>
+			<Card.Title class="text-2xl">Join a League</Card.Title>
+		</Card.Header>
 		<form onsubmit={handleSubmit}>
-			<CardContent class="space-y-4">
+			<Card.Content class="space-y-4">
 				<div class="space-y-2">
 					<Label for="teamName">Your Team Name</Label>
 					<Input id="teamName" bind:value={teamName} placeholder="My Studio" />
@@ -68,13 +68,13 @@
 				{#if error}
 					<p class="text-center text-sm font-medium text-destructive">{error}</p>
 				{/if}
-			</CardContent>
-			<CardFooter class="flex flex-col gap-2">
+			</Card.Content>
+			<Card.Footer class="flex flex-col gap-2">
 				<Button type="submit" class="w-full" disabled={loading}>
 					{loading ? 'Joining...' : 'Join League'}
 				</Button>
 				<Button variant="ghost" href="/dashboard" class="w-full">Cancel</Button>
-			</CardFooter>
+			</Card.Footer>
 		</form>
-	</Card>
+	</Card.Root>
 </div>

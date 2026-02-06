@@ -4,10 +4,10 @@ import adapter from '@sveltejs/adapter-static';
 const config = {
 	kit: {
 		adapter: adapter({ strict: false, fallback: 'index.html' }),
-        alias: {
-            $lib: 'src/lib',
-            "@/*": "src/lib/*"
-        }
+		alias: {
+			$lib: 'src/lib',
+			'@/*': 'src/lib/*'
+		}
 	}
 };
 

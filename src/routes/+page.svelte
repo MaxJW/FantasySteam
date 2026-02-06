@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { currentUser, signInWithGoogle } from '$lib/auth';
 	import { Button } from '$lib/components/ui/button';
-	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import * as Card from '$lib/components/ui/card';
 
 	let loading = $state(false);
 
@@ -51,11 +51,11 @@
 		</div>
 	</div>
 
-	<Card class="w-full max-w-4xl border-muted bg-card/50 text-left backdrop-blur-sm">
-		<CardHeader>
-			<CardTitle class="text-primary">How to play</CardTitle>
-		</CardHeader>
-		<CardContent>
+	<Card.Root class="w-full max-w-4xl border-muted bg-card/50 text-left backdrop-blur-sm">
+		<Card.Header>
+			<Card.Title class="text-primary">How to play</Card.Title>
+		</Card.Header>
+		<Card.Content>
 			<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 				<div class="space-y-2">
 					<h3 class="font-bold text-foreground">1. Join a League</h3>
@@ -66,7 +66,7 @@
 				<div class="space-y-2">
 					<h3 class="font-bold text-foreground">2. The Draft</h3>
 					<p class="text-sm text-muted-foreground">
-						Enter the live snake draft. Pick your Hits, Busts, and Seasonal games in order.
+						Enter the live snake draft. Pick your Hits, Bombs, and Seasonal games in order.
 					</p>
 				</div>
 				<div class="space-y-2">
@@ -76,6 +76,6 @@
 					</p>
 				</div>
 			</div>
-		</CardContent>
-	</Card>
+		</Card.Content>
+	</Card.Root>
 </div>

@@ -21,7 +21,9 @@ function initFirebase() {
 		admin.initializeApp({ credential: admin.credential.cert(JSON.parse(cred)) });
 	} else {
 		const keyPath = join(__dirname, '..', 'service-account.json');
-		admin.initializeApp({ credential: admin.credential.cert(JSON.parse(readFileSync(keyPath, 'utf8'))) });
+		admin.initializeApp({
+			credential: admin.credential.cert(JSON.parse(readFileSync(keyPath, 'utf8')))
+		});
 	}
 	return admin.firestore();
 }
@@ -75,7 +77,9 @@ async function processYear(db, year) {
 		updatedAt: admin.firestore.FieldValue.serverTimestamp()
 	});
 
-	console.log(`GameList ${year}: kept ${toKeep.length}, removed ${toRemove.length} (release year > ${year}). Deleted ${deleted} docs from games.`);
+	console.log(
+		`GameList ${year}: kept ${toKeep.length}, removed ${toRemove.length} (release year > ${year}). Deleted ${deleted} docs from games.`
+	);
 	return { kept: toKeep.length, removed: toRemove.length, deleted };
 }
 
@@ -85,9 +89,7 @@ async function main() {
 
 	if (yearArg === 'all') {
 		const listsSnap = await db.collection('gameLists').get();
-		const years = listsSnap.docs
-			.map((d) => parseInt(d.id, 10))
-			.filter((y) => !Number.isNaN(y));
+		const years = listsSnap.docs.map((d) => parseInt(d.id, 10)).filter((y) => !Number.isNaN(y));
 		if (years.length === 0) {
 			console.log('No gameList documents found.');
 			return;
@@ -100,7 +102,9 @@ async function main() {
 			totalRemoved += result.removed;
 			totalDeleted += result.deleted;
 		}
-		console.log(`Done. Total removed from lists: ${totalRemoved}, total game docs deleted: ${totalDeleted}.`);
+		console.log(
+			`Done. Total removed from lists: ${totalRemoved}, total game docs deleted: ${totalDeleted}.`
+		);
 		return;
 	}
 

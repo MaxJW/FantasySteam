@@ -8,8 +8,12 @@
 
 	let { children } = $props();
 	let user = $state(get(currentUser));
+	let path = $state(get(page).url.pathname);
 	currentUser.subscribe((u) => (user = u));
-	const path = $derived(get(page).url.pathname);
+	$effect(() => {
+		const unsub = page.subscribe((p) => (path = p.url.pathname));
+		return unsub;
+	});
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
@@ -22,7 +26,7 @@
 			<div class="flex items-center gap-6">
 				<a
 					href="/"
-					class="flex items-center gap-2 text-xl font-bold tracking-tight text-primary transition-opacity hover:opacity-80"
+					class="flex items-center text-xl font-bold tracking-tight text-primary transition-opacity hover:opacity-80"
 				>
 					<span class="text-foreground">Fantasy</span>Steam
 				</a>

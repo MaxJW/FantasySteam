@@ -37,10 +37,7 @@ export async function getLeague(leagueId: string): Promise<(League & { id: strin
 }
 
 export async function getLeagueByCode(code: string): Promise<(League & { id: string }) | null> {
-	const q = query(
-		collection(db, LEAGUES),
-		where('code', '==', code.trim().toUpperCase())
-	);
+	const q = query(collection(db, LEAGUES), where('code', '==', code.trim().toUpperCase()));
 	const snap = await getDocs(q);
 	if (snap.empty) return null;
 	const doc = snap.docs[0];
@@ -48,15 +45,15 @@ export async function getLeagueByCode(code: string): Promise<(League & { id: str
 }
 
 export async function getLeaguesForUser(userId: string): Promise<(League & { id: string })[]> {
-	const q = query(
-		collection(db, LEAGUES),
-		where('members', 'array-contains', userId)
-	);
+	const q = query(collection(db, LEAGUES), where('members', 'array-contains', userId));
 	const snap = await getDocs(q);
-	return snap.docs.map((d) => ({ id: d.id, ...d.data() } as League & { id: string }));
+	return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as League & { id: string });
 }
 
-export async function getTeam(leagueId: string, userId: string): Promise<(Team & { id: string }) | null> {
+export async function getTeam(
+	leagueId: string,
+	userId: string
+): Promise<(Team & { id: string }) | null> {
 	const snap = await getDoc(teamRef(leagueId, userId));
 	if (!snap.exists()) return null;
 	return { id: snap.id, ...snap.data() } as Team & { id: string };
@@ -65,7 +62,7 @@ export async function getTeam(leagueId: string, userId: string): Promise<(Team &
 export async function getTeams(leagueId: string): Promise<(Team & { id: string })[]> {
 	const snap = await getDocs(collection(db, LEAGUES, leagueId, TEAMS));
 	return snap.docs
-		.map((d) => ({ id: d.id, ...d.data() } as Team & { id: string }))
+		.map((d) => ({ id: d.id, ...d.data() }) as Team & { id: string })
 		.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 }
 
@@ -134,8 +131,8 @@ export async function updateLeagueSettings(
 	settings: Partial<LeagueSettings>
 ): Promise<void> {
 	const updates: Record<string, unknown> = {};
-	if (settings.seasonalPicks !== undefined) updates['settings.seasonalPicks'] = settings.seasonalPicks;
-	if (settings.hypeMultiplier !== undefined) updates['settings.hypeMultiplier'] = settings.hypeMultiplier;
+	if (settings.seasonalPicks !== undefined)
+		updates['settings.seasonalPicks'] = settings.seasonalPicks;
 	if (Object.keys(updates).length === 0) return;
 	await updateDoc(leagueRef(leagueId), updates);
 }
@@ -144,7 +141,11 @@ export async function updateLeagueSeason(leagueId: string, season: string): Prom
 	await updateDoc(leagueRef(leagueId), { season });
 }
 
-export async function updateTeamName(leagueId: string, userId: string, name: string): Promise<void> {
+export async function updateTeamName(
+	leagueId: string,
+	userId: string,
+	name: string
+): Promise<void> {
 	await setDoc(teamRef(leagueId, userId), { name }, { merge: true });
 }
 

@@ -8,7 +8,6 @@ export interface UserProfile {
 }
 
 export interface LeagueSettings {
-	hypeMultiplier?: number;
 	seasonalPicks: number;
 }
 
@@ -77,6 +76,10 @@ export interface GameListEntry {
 	id: string;
 	name: string;
 	releaseDate: string | null;
+	/** Populated by getGameList from games data when available. */
+	coverUrl?: string | null;
+	/** Daily fantasy score from update-scores (stored in games.json). */
+	score?: number | null;
 }
 
 export interface Game {
@@ -89,6 +92,8 @@ export interface Game {
 	steamAppId: string | null;
 	igdbId?: number;
 	isHidden: boolean;
+	/** Daily fantasy score from update-scores (stored in games.json). */
+	score?: number | null;
 	metrics?: GameMetrics;
 	/** Short description/summary from IGDB */
 	description?: string | null;

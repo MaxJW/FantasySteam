@@ -1,32 +1,29 @@
 /**
- * Populate Firestore with upcoming Steam games from IGDB.
- * Requires: TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET, FIREBASE_SERVICE_ACCOUNT (or service-account.json).
+ * Fetch upcoming Steam games from IGDB and output to JSON file.
+ * Requires: TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET.
  * Loads .env from project root if present. Run: node scripts/populate-games.js
  */
 
 import 'dotenv/config';
-import admin from 'firebase-admin';
-import { readFileSync } from 'fs';
+import { writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const HIDDEN_APP_ID = '999999';
-const STEAM_PLATFORM_ID = 6; // PC in IGDB; external_game_source 1 = Steam
+const STEAM_PLATFORM_ID = 6; // PC in IGDB
+
+const LINE = '────────────────────────────────────────';
+const log = {
+	header: (s) => console.log(`\n${LINE}\n  ${s}\n${LINE}`),
+	step: (s) => console.log(`\n▸ ${s}`),
+	ok: (s) => console.log(`  ${s}`),
+	warn: (s) => console.warn(`  ⚠ ${s}`)
+};
 const IGDB_RATE_LIMIT_MS = 300; // ~3–4 req/s max
 const GAMES_PAGE_SIZE = 500;
 const EXTERNAL_GAMES_BATCH = 200; // max game IDs per external_games request
-
-function initFirebase() {
-	const cred = process.env.FIREBASE_SERVICE_ACCOUNT;
-	if (cred) {
-		admin.initializeApp({ credential: admin.credential.cert(JSON.parse(cred)) });
-	} else {
-		const keyPath = join(__dirname, '..', 'service-account.json');
-		admin.initializeApp({ credential: admin.credential.cert(JSON.parse(readFileSync(keyPath, 'utf8'))) });
-	}
-	return admin.firestore();
-}
+const OUTPUT_FILE = join(__dirname, '..', 'games-output.json');
 
 async function getTwitchToken(clientId, clientSecret) {
 	const url = `https://id.twitch.tv/oauth2/token?client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&grant_type=client_credentials`;
@@ -55,22 +52,6 @@ function sleep(ms) {
 	return new Promise((r) => setTimeout(r, ms));
 }
 
-/** Delete all documents in a collection (batches of 500). */
-async function deleteCollection(db, collectionName) {
-	const col = db.collection(collectionName);
-	let deleted = 0;
-	while (true) {
-		const snap = await col.limit(500).get();
-		if (snap.empty) break;
-		const batch = db.batch();
-		snap.docs.forEach((d) => batch.delete(d.ref));
-		await batch.commit();
-		deleted += snap.size;
-		console.log(`Deleted ${deleted} docs from ${collectionName}...`);
-	}
-	console.log(`Cleared ${collectionName} (${deleted} total).`);
-}
-
 // First release date: within current year only (start and end)
 function releaseDateRange() {
 	const year = new Date().getFullYear();
@@ -80,6 +61,8 @@ function releaseDateRange() {
 }
 
 async function main() {
+	log.header('populate-games');
+
 	const clientId = process.env.TWITCH_CLIENT_ID;
 	const clientSecret = process.env.TWITCH_CLIENT_SECRET;
 	if (!clientId || !clientSecret) {
@@ -87,99 +70,121 @@ async function main() {
 		process.exit(1);
 	}
 
-	const db = initFirebase();
-
-	console.log('Clearing games and gameLists collections...');
-	await deleteCollection(db, 'games');
-	await deleteCollection(db, 'gameLists');
-
 	const token = await getTwitchToken(clientId, clientSecret);
 	const { since, until } = releaseDateRange();
+	log.ok(
+		`Twitch token ✓  |  ${new Date(since * 1000).toISOString().slice(0, 10)} → ${new Date(until * 1000).toISOString().slice(0, 10)}`
+	);
 
-	// 1) Fetch all games: PC platform, release date within current year only (paginate with offset)
+	// 1) Fetch all games
+	log.step('Games');
 	const games = [];
 	let offset = 0;
 	while (true) {
-		const body = `fields name,first_release_date,cover,genres,summary,involved_companies; where platforms = (${STEAM_PLATFORM_ID}) & first_release_date >= ${since} & first_release_date <= ${until}; sort first_release_date asc; limit ${GAMES_PAGE_SIZE}; offset ${offset};`;
+		const body = `fields name,first_release_date,cover,genres,summary,involved_companies; where platforms = (${STEAM_PLATFORM_ID}) & first_release_date >= ${since} & first_release_date <= ${until} & version_parent = null & parent_game = null; sort first_release_date asc; limit ${GAMES_PAGE_SIZE}; offset ${offset};`;
 		const page = await igdbPost(token, clientId, 'games', body);
 		await sleep(IGDB_RATE_LIMIT_MS);
 		games.push(...page);
 		if (page.length < GAMES_PAGE_SIZE) break;
 		offset += GAMES_PAGE_SIZE;
-		console.log(`Fetched ${games.length} games so far...`);
+		log.ok(`  ${games.length} games…`);
 	}
 
 	if (games.length === 0) {
-		console.log('No games returned from IGDB.');
+		log.ok('No games from IGDB.');
 		return;
 	}
-	console.log(`Total games: ${games.length}`);
+	const withCoverId = games.filter((g) => g.cover).length;
+	log.ok(`${games.length} games  (${withCoverId} with cover id)`);
 
 	const gameIds = games.map((g) => g.id).filter(Boolean);
 
-	// 2) Get Steam app IDs from external_games (external_game_source 1 = Steam; category is deprecated)
+	// 2) Get Steam app IDs from external_games
 	const gameIdToSteamAppId = new Map();
 	for (let i = 0; i < gameIds.length; i += EXTERNAL_GAMES_BATCH) {
 		const batch = gameIds.slice(i, i + EXTERNAL_GAMES_BATCH);
-		const extBody = `fields game,uid,external_game_source; where game = (${batch.join(',')}) & external_game_source = 1;`;
+		const extBody = `fields game,uid,external_game_source; where game = (${batch.join(',')}) & external_game_source = 1; limit ${EXTERNAL_GAMES_BATCH};`;
 		try {
 			const externalGames = await igdbPost(token, clientId, 'external_games', extBody);
 			for (const eg of externalGames) {
 				if (eg.uid) gameIdToSteamAppId.set(eg.game, String(eg.uid));
 			}
 		} catch (e) {
-			console.warn('external_games batch failed:', e.message);
+			log.warn(`external_games: ${e.message}`);
 		}
 		await sleep(IGDB_RATE_LIMIT_MS);
 	}
+	log.ok(`Steam app IDs for ${gameIdToSteamAppId.size} games`);
 
-	// 3) Fetch cover image_ids and url (for extension) for games that have cover (batch to avoid huge queries)
+	// 3) Fetch cover image_ids by cover ID
+	log.step('Covers');
 	const coverIds = [...new Set(games.map((g) => g.cover).filter(Boolean))];
-	let coverMap = new Map(); // coverId -> { imageId, ext }
-	const allowedExt = new Set(['jpg', 'jpeg', 'png', 'webp']);
-	function extFromUrl(url) {
-		if (!url || typeof url !== 'string') return 'jpg';
-		const ext = url.split('.').pop().split('?')[0].toLowerCase();
-		return allowedExt.has(ext) ? ext : 'jpg';
-	}
+	let coverMap = new Map();
+	const coverIdsWeGotBack = new Set();
+
 	for (let i = 0; i < coverIds.length; i += EXTERNAL_GAMES_BATCH) {
 		const batch = coverIds.slice(i, i + EXTERNAL_GAMES_BATCH);
-		const coverBody = `fields id,image_id,url; where id = (${batch.join(',')});`;
+		const coverBody = `fields id,image_id; where id = (${batch.join(',')}); limit ${EXTERNAL_GAMES_BATCH};`;
 		try {
 			const covers = await igdbPost(token, clientId, 'covers', coverBody);
 			for (const c of covers) {
+				coverIdsWeGotBack.add(c.id);
 				if (c.image_id) {
-					coverMap.set(c.id, { imageId: c.image_id, ext: extFromUrl(c.url) });
+					coverMap.set(
+						c.id,
+						`https://images.igdb.com/igdb/image/upload/t_cover_big/${c.image_id}.webp`
+					);
 				}
 			}
 		} catch (e) {
-			console.warn('covers batch failed:', e.message);
+			log.warn(`covers: ${e.message}`);
 		}
 		await sleep(IGDB_RATE_LIMIT_MS);
 	}
 
+	const neverReturned = coverIds.filter((id) => !coverIdsWeGotBack.has(id));
+	const returnedButNoImageId = coverIds.filter(
+		(id) => coverIdsWeGotBack.has(id) && !coverMap.has(id)
+	);
+	log.ok(`${coverMap.size} / ${coverIds.length} cover URLs`);
+	if (neverReturned.length > 0 || returnedButNoImageId.length > 0) {
+		log.ok(
+			`  Missing: ${neverReturned.length} not in API, ${returnedButNoImageId.length} no image_id`
+		);
+	}
+
 	// 4) Fetch genre names
+	log.step('Genres');
 	let genreMap = new Map();
 	const genreIds = [...new Set(games.flatMap((g) => g.genres || []).filter(Boolean))];
 	if (genreIds.length > 0) {
-		const genreBody = `fields name; where id = (${genreIds.join(',')});`;
-		try {
-			const genres = await igdbPost(token, clientId, 'genres', genreBody);
-			for (const g of genres) genreMap.set(g.id, g.name || '');
-		} catch (e) {
-			console.warn('genres query failed:', e.message);
+		for (let i = 0; i < genreIds.length; i += EXTERNAL_GAMES_BATCH) {
+			const batch = genreIds.slice(i, i + EXTERNAL_GAMES_BATCH);
+			const genreBody = `fields name; where id = (${batch.join(',')}); limit ${EXTERNAL_GAMES_BATCH};`;
+			try {
+				const genres = await igdbPost(token, clientId, 'genres', genreBody);
+				for (const g of genres) genreMap.set(g.id, g.name || '');
+			} catch (e) {
+				log.warn(`genres: ${e.message}`);
+			}
+			await sleep(IGDB_RATE_LIMIT_MS);
 		}
+		log.ok(`${genreMap.size} genres`);
 	}
 
 	// 5) Resolve involved_companies -> company names
-	const involvedCompanyIds = [...new Set(games.flatMap((g) => g.involved_companies || []).filter(Boolean))];
+	log.step('Companies');
+	const involvedCompanyIds = [
+		...new Set(games.flatMap((g) => g.involved_companies || []).filter(Boolean))
+	];
 	const icIdToCompanyId = new Map();
 	const companyIds = new Set();
+
 	if (involvedCompanyIds.length > 0) {
 		for (let i = 0; i < involvedCompanyIds.length; i += EXTERNAL_GAMES_BATCH) {
 			const batch = involvedCompanyIds.slice(i, i + EXTERNAL_GAMES_BATCH);
 			try {
-				const icBody = `fields company; where id = (${batch.join(',')});`;
+				const icBody = `fields company; where id = (${batch.join(',')}); limit ${EXTERNAL_GAMES_BATCH};`;
 				const ics = await igdbPost(token, clientId, 'involved_companies', icBody);
 				for (const ic of ics) {
 					if (ic.company != null) {
@@ -188,47 +193,59 @@ async function main() {
 					}
 				}
 			} catch (e) {
-				console.warn('involved_companies batch failed:', e.message);
+				log.warn(`involved_companies: ${e.message}`);
 			}
 			await sleep(IGDB_RATE_LIMIT_MS);
 		}
 	}
+
 	let companyIdToName = new Map();
 	const cids = [...companyIds];
-	for (let i = 0; i < cids.length; i += EXTERNAL_GAMES_BATCH) {
-		const batch = cids.slice(i, i + EXTERNAL_GAMES_BATCH);
-		try {
-			const companyBody = `fields name; where id = (${batch.join(',')});`;
-			const companies = await igdbPost(token, clientId, 'companies', companyBody);
-			for (const c of companies) companyIdToName.set(c.id, c.name || '');
-		} catch (e) {
-			console.warn('companies batch failed:', e.message);
+	if (cids.length > 0) {
+		for (let i = 0; i < cids.length; i += EXTERNAL_GAMES_BATCH) {
+			const batch = cids.slice(i, i + EXTERNAL_GAMES_BATCH);
+			try {
+				const companyBody = `fields name; where id = (${batch.join(',')}); limit ${EXTERNAL_GAMES_BATCH};`;
+				const companies = await igdbPost(token, clientId, 'companies', companyBody);
+				for (const c of companies) companyIdToName.set(c.id, c.name || '');
+			} catch (e) {
+				log.warn(`companies: ${e.message}`);
+			}
+			await sleep(IGDB_RATE_LIMIT_MS);
 		}
-		await sleep(IGDB_RATE_LIMIT_MS);
+		log.ok(`${companyIdToName.size} companies`);
 	}
 
-	// 6) Write all games keyed by IGDB id (steamAppId stored in doc; no games missed, easy to update later)
-	let written = 0;
+	// 6) Build game docs
+	log.step('Build & write');
+	const gameDocs = [];
+	let withCover = 0;
+	let withoutCover = 0;
+
 	for (const g of games) {
 		if (g.id == null) continue;
+
 		const steamAppId = gameIdToSteamAppId.get(g.id) ?? null;
+		if (!steamAppId) continue; // only output games with a Steam ID
 		const isHidden = steamAppId === HIDDEN_APP_ID;
 		const releaseDate = g.first_release_date
 			? new Date(g.first_release_date * 1000).toISOString().slice(0, 10)
 			: null;
-		const coverData = g.cover && coverMap.get(g.cover);
-		const coverUrl = coverData
-			? `https://images.igdb.com/igdb/image/upload/t_cover_big/${coverData.imageId}.${coverData.ext}`
-			: null;
+		const coverUrl = (g.cover && coverMap.get(g.cover)) || null;
+		if (coverUrl) withCover++;
+		else withoutCover++;
 		const genreNames = (g.genres || []).map((id) => genreMap.get(id)).filter(Boolean);
 
-		const companyNames = [...new Set(
-			(g.involved_companies || [])
-				.map((icId) => companyIdToName.get(icIdToCompanyId.get(icId)))
-				.filter(Boolean)
-		)];
+		const companyNames = [
+			...new Set(
+				(g.involved_companies || [])
+					.map((icId) => companyIdToName.get(icIdToCompanyId.get(icId)))
+					.filter(Boolean)
+			)
+		];
 
-		const doc = {
+		gameDocs.push({
+			id: String(g.id),
 			name: g.name || 'Unknown',
 			coverUrl,
 			releaseDate,
@@ -238,28 +255,14 @@ async function main() {
 			isHidden,
 			description: (g.summary || '').trim() || null,
 			companies: companyNames.length ? companyNames : null
-		};
-
-		await db.collection('games').doc(String(g.id)).set(doc, { merge: true });
-		written++;
+		});
 	}
 
-	// 7) Write yearly list doc (id = IGDB id; exclude hidden from picker list)
-	const year = new Date().getFullYear();
-	const listEntries = games
-		.filter((g) => g.id != null)
-		.filter((g) => gameIdToSteamAppId.get(g.id) !== HIDDEN_APP_ID)
-		.map((g) => {
-			const releaseDate = g.first_release_date
-				? new Date(g.first_release_date * 1000).toISOString().slice(0, 10)
-				: null;
-			return { id: String(g.id), name: g.name || 'Unknown', releaseDate };
-		})
-		.sort((a, b) => (a.releaseDate || '').localeCompare(b.releaseDate || ''));
-	await db.collection('gameLists').doc(String(year)).set({ games: listEntries, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-	console.log(`Written game list for ${year} (${listEntries.length} games).`);
+	const output = { games: gameDocs };
+	writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2), 'utf8');
+	log.ok(`${OUTPUT_FILE}  →  ${gameDocs.length} games`);
 
-	console.log(`Done. Written ${written} games (keyed by IGDB id, steamAppId in doc).`);
+	log.header(`Done  ${gameDocs.length} games  |  ${withCover} with cover`);
 }
 
 main().catch((err) => {
