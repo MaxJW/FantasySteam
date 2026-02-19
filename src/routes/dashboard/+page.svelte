@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { currentUser } from '$lib/auth';
 	import { getLeaguesForUser } from '$lib/db';
+	import { PHASE_CONFIG } from '$lib/db';
+	import type { League } from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
-	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Plus, LogIn } from '@lucide/svelte';
+	import { Plus, LogIn, Zap, Users, ChevronRight } from '@lucide/svelte';
 
-	let leagues = $state<Awaited<ReturnType<typeof getLeaguesForUser>>>([]);
+	let leagues = $state<(League & { id: string })[]>([]);
 	let loading = $state(true);
 
 	$effect(() => {
@@ -19,18 +20,39 @@
 		});
 		return unsub;
 	});
+
+	function getStatusLabel(league: League): string {
+		if (league.status === 'completed') return 'Completed';
+		if (league.status === 'draft') return 'Pre-Season';
+		return `${PHASE_CONFIG[league.currentPhase]?.label ?? ''} Phase`;
+	}
+
+	function getPhaseProgress(league: League): number {
+		const phases = ['winter', 'summer', 'fall'] as const;
+		const idx = phases.indexOf(league.currentPhase);
+		if (league.status === 'completed') return 3;
+		if (league.status === 'draft') return 0;
+		return idx;
+	}
 </script>
 
 <svelte:head><title>Dashboard</title></svelte:head>
 
 <div class="mx-auto max-w-5xl space-y-8">
 	<div class="flex items-center justify-between">
-		<h1 class="text-3xl font-bold tracking-tight">My Leagues</h1>
+		<div>
+			<h1 class="text-3xl font-bold tracking-tight">My Leagues</h1>
+			<p class="mt-1 text-sm text-muted-foreground">Manage and view your fantasy leagues</p>
+		</div>
 		<div class="flex gap-2">
-			<Button variant="outline" href="/league/join" class="gap-2">
+			<Button
+				variant="outline"
+				href="/league/join"
+				class="gap-2 border-white/[0.08] hover:border-white/[0.15]"
+			>
 				<LogIn class="h-4 w-4" /> Join
 			</Button>
-			<Button href="/league/create" class="gap-2">
+			<Button href="/league/create" class="glow-sm-primary gap-2">
 				<Plus class="h-4 w-4" /> Create
 			</Button>
 		</div>
@@ -38,41 +60,105 @@
 
 	{#if loading}
 		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-			{#each Array(3) as _}
-				<div class="h-40 animate-pulse rounded-xl bg-muted/50"></div>
+			{#each Array(3) as _, i}
+				<div
+					class="animate-fade-in-up rounded-xl border border-white/[0.06] bg-card/50 p-6"
+					style="animation-delay: {i * 0.1}s"
+				>
+					<div class="space-y-3">
+						<div class="h-5 w-2/3 animate-pulse rounded bg-white/[0.06]"></div>
+						<div class="h-4 w-1/3 animate-pulse rounded bg-white/[0.04]"></div>
+						<div class="mt-4 h-2 w-full rounded-full bg-white/[0.04]"></div>
+					</div>
+				</div>
 			{/each}
 		</div>
 	{:else if leagues.length === 0}
-		<Card.Root class="border-2 border-dashed bg-transparent py-12 text-center">
-			<Card.Content class="space-y-4">
-				<p class="text-muted-foreground">You don't have any active leagues.</p>
-				<Button href="/league/create">Get Started</Button>
-			</Card.Content>
-		</Card.Root>
+		<div class="glass flex flex-col items-center rounded-xl py-16 text-center">
+			<div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+				<Zap class="h-8 w-8 text-primary" />
+			</div>
+			<h2 class="text-lg font-semibold text-foreground">No leagues yet</h2>
+			<p class="mt-1 mb-6 max-w-sm text-sm text-muted-foreground">
+				Create a new league to start drafting games, or join one with an invite code.
+			</p>
+			<div class="flex gap-3">
+				<Button variant="outline" href="/league/join" class="gap-2">
+					<LogIn class="h-4 w-4" /> Join League
+				</Button>
+				<Button href="/league/create" class="glow-sm-primary gap-2">
+					<Plus class="h-4 w-4" /> Create League
+				</Button>
+			</div>
+		</div>
 	{:else}
 		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-			{#each leagues as league}
-				<a href="/league/{league.id}" class="group block">
-					<Card.Root class="h-full transition-all hover:border-primary/50 hover:bg-card/80">
-						<Card.Header>
-							<div class="flex items-start justify-between">
-								<Card.Title class="text-xl transition-colors group-hover:text-primary"
-									>{league.name}</Card.Title
+			{#each leagues as league, i}
+				<a
+					href="/league/{league.id}"
+					class="group block animate-fade-in-up"
+					style="animation-delay: {i * 0.06}s"
+				>
+					<div
+						class="relative overflow-hidden rounded-xl border border-white/[0.06] bg-card/60 transition-all duration-200 hover:border-primary/30 hover:bg-card/80 hover:shadow-lg hover:shadow-primary/[0.05]"
+					>
+						<div
+							class="h-1 w-full bg-gradient-to-r from-primary/60 via-primary/30 to-transparent"
+						></div>
+						<div class="p-5">
+							<div class="flex items-start justify-between gap-2">
+								<h3
+									class="text-lg font-semibold text-foreground transition-colors group-hover:text-primary"
 								>
-								<Badge variant={league.status === 'active' ? 'default' : 'secondary'}
-									>{league.status}</Badge
+									{league.name}
+								</h3>
+								<Badge
+									variant={league.status === 'active'
+										? 'default'
+										: league.status === 'completed'
+											? 'secondary'
+											: 'outline'}
+									class="shrink-0 text-[10px]"
 								>
+									{getStatusLabel(league)}
+								</Badge>
 							</div>
-							<Card.Description>Season {league.season}</Card.Description>
-						</Card.Header>
-						<Card.Content>
-							<p class="text-sm text-muted-foreground">
-								Code: <span class="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground"
-									>{league.code}</span
+
+							<div class="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
+								<span>Season {league.season}</span>
+								<span class="text-border">|</span>
+								<span
+									class="rounded bg-white/[0.05] px-1.5 py-0.5 font-mono text-xs text-foreground"
 								>
-							</p>
-						</Card.Content>
-					</Card.Root>
+									{league.code}
+								</span>
+							</div>
+
+							<!-- Phase progress -->
+							<div class="mt-4 flex items-center gap-2">
+								<div class="flex flex-1 gap-1">
+									{#each [0, 1, 2] as step}
+										<div
+											class="h-1.5 flex-1 rounded-full transition-colors {step <
+											getPhaseProgress(league)
+												? 'bg-accent'
+												: step === getPhaseProgress(league) &&
+													  league.status !== 'draft' &&
+													  league.status !== 'completed'
+													? 'bg-primary'
+													: 'bg-white/[0.06]'}"
+										></div>
+									{/each}
+								</div>
+								<span class="text-[10px] text-muted-foreground">
+									{getPhaseProgress(league)}/3 drafts
+								</span>
+								<ChevronRight
+									class="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+								/>
+							</div>
+						</div>
+					</div>
 				</a>
 			{/each}
 		</div>

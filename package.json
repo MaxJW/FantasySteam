@@ -14,7 +14,7 @@
 		"format": "prettier --write .",
 		"update-scores": "node scripts/update-scores.js",
 		"populate-games": "node scripts/populate-games.js",
-		"delete-future-games": "node scripts/delete-future-year-games.js"
+		"reset": "node scripts/reset.js"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.0.1",

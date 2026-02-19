@@ -1,6 +1,8 @@
-import type { Game, GameListEntry } from './types';
+import { collection, doc, getDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { db } from '$lib/firebase';
+import type { Game, GameListEntry, GameHistoryDay } from './types';
 
-/** Games data from lib/assets/games.json. Firestore is used only for game metrics/history (see update-scores.js). */
+/** Games metadata from lib/assets/games.json. Scores come from Firestore (meta/scores). */
 interface GamesAsset {
 	games: (Game & { id: string })[];
 }
@@ -9,10 +11,36 @@ const gamesData: GamesAsset = ((await import('$lib/assets/games.json')) as { def
 	.default;
 const gamesById = new Map<string, Game & { id: string }>(gamesData.games.map((g) => [g.id, g]));
 
-/** Game document id is IGDB id (string). Firestore games collection is used only for metrics/history by update-scores.js. */
-export function getGame(gameId: string): Promise<(Game & { id: string }) | null> {
+/* ------------------------------------------------------------------ */
+/*  Scores from Firestore (cached)                                     */
+/* ------------------------------------------------------------------ */
+
+let scoresPromise: Promise<Record<string, number>> | null = null;
+
+/** Fetches the scores summary from Firestore (meta/scores). Cached after first call. */
+export function getScoresMap(): Promise<Record<string, number>> {
+	if (!scoresPromise) {
+		scoresPromise = getDoc(doc(db, 'meta', 'scores')).then((snap) =>
+			snap.exists() ? ((snap.data().scores as Record<string, number>) ?? {}) : {}
+		);
+	}
+	return scoresPromise;
+}
+
+/** Invalidate the cached scores so the next call re-fetches from Firestore. */
+export function refreshScores(): void {
+	scoresPromise = null;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Game accessors                                                     */
+/* ------------------------------------------------------------------ */
+
+export async function getGame(gameId: string): Promise<(Game & { id: string }) | null> {
 	const g = gamesById.get(gameId) ?? null;
-	return Promise.resolve(g ? { ...g, id: gameId } : null);
+	if (!g) return null;
+	const scores = await getScoresMap();
+	return { ...g, id: gameId, score: scores[gameId] ?? null };
 }
 
 /** Returns available years derived from games.json (unique releaseDate years). */
@@ -28,8 +56,9 @@ export function getGameListYears(): Promise<number[]> {
 	return Promise.resolve(years);
 }
 
-function getFullGameListForYear(year: number): GameListEntry[] {
+async function getFullGameListForYear(year: number): Promise<GameListEntry[]> {
 	const yearStr = String(year);
+	const scores = await getScoresMap();
 	return gamesData.games
 		.filter((g) => g.releaseDate?.startsWith(yearStr))
 		.map(
@@ -38,29 +67,38 @@ function getFullGameListForYear(year: number): GameListEntry[] {
 				name: g.name,
 				releaseDate: g.releaseDate ?? null,
 				coverUrl: g.coverUrl ?? null,
-				score: g.score ?? null
+				score: scores[g.id] ?? null
 			})
 		);
 }
 
-/** Games for a given year from games.json (filter by releaseDate). Entries include coverUrl when available. */
+/** Games for a given year. Entries include coverUrl and Firestore score when available. */
 export function getGameList(year: number): Promise<GameListEntry[]> {
-	return Promise.resolve(getFullGameListForYear(year));
+	return getFullGameListForYear(year);
 }
 
 export type GameListSortBy = 'id' | 'name' | 'date' | 'score';
 export type GameListOrder = 'asc' | 'desc';
 
-/** Paginated games for a year. Optional search, sort, and releaseFrom (YYYY-MM-DD; only games with releaseDate >= releaseFrom). */
-export function getGameListPage(
+/** Paginated games for a year. Optional search, sort, releaseFrom/releaseTo (YYYY-MM-DD). */
+export async function getGameListPage(
 	year: number,
 	limit: number,
 	offset: number,
-	opts?: { search?: string; sortBy?: GameListSortBy; order?: GameListOrder; releaseFrom?: string }
+	opts?: {
+		search?: string;
+		sortBy?: GameListSortBy;
+		order?: GameListOrder;
+		releaseFrom?: string;
+		releaseTo?: string;
+	}
 ): Promise<{ games: GameListEntry[]; total: number }> {
-	let full = getFullGameListForYear(year);
+	let full = await getFullGameListForYear(year);
 	if (opts?.releaseFrom) {
 		full = full.filter((g) => (g.releaseDate ?? '') >= opts.releaseFrom!);
+	}
+	if (opts?.releaseTo) {
+		full = full.filter((g) => (g.releaseDate ?? '') <= opts.releaseTo!);
 	}
 	if (opts?.search?.trim()) {
 		const q = opts.search.trim().toLowerCase();
@@ -76,7 +114,6 @@ export function getGameListPage(
 			cmp = (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' });
 		else if (sortBy === 'date') cmp = (a.releaseDate ?? '').localeCompare(b.releaseDate ?? '');
 		else {
-			// score: treat null/undefined as -Infinity so they sort last
 			const sa = a.score ?? -Infinity;
 			const sb = b.score ?? -Infinity;
 			cmp = sa === sb ? 0 : sa < sb ? -1 : 1;
@@ -85,7 +122,7 @@ export function getGameListPage(
 	});
 	const total = full.length;
 	const games = full.slice(offset, offset + limit);
-	return Promise.resolve({ games, total });
+	return { games, total };
 }
 
 export function isGameHidden(gameId: string): Promise<boolean> {
@@ -121,4 +158,35 @@ export async function getDraftableGames(opts?: {
 		list = list.slice(0, opts.limitCount);
 	}
 	return list.map((g) => ({ ...g, id: g.id }));
+}
+
+/** Get game history from Firestore (daily points data) */
+export async function getGameHistory(
+	gameId: string
+): Promise<Array<GameHistoryDay & { date: string }>> {
+	const historyRef = collection(db, 'games', gameId, 'history');
+	const q = query(historyRef, orderBy('date', 'asc'));
+	const snap = await getDocs(q);
+	return snap.docs.map((doc) => {
+		const data = doc.data();
+		return {
+			owners: data.estimatedOwners ?? 0,
+			ownersDelta: data.salesDelta ?? 0,
+			ccu: data.ccu ?? 0,
+			daysSinceRelease: data.daysSinceRelease ?? 0,
+			dailyPoints: data.points ?? 0,
+			date: data.date ?? doc.id
+		} as GameHistoryDay & { date: string };
+	});
+}
+
+/** Get upcoming games (releaseDate >= today) */
+export function getUpcomingGames(): Promise<(Game & { id: string })[]> {
+	const today = new Date().toISOString().split('T')[0];
+	return Promise.resolve(
+		gamesData.games
+			.filter((g) => !g.isHidden && g.releaseDate && g.releaseDate >= today)
+			.sort((a, b) => (a.releaseDate ?? '').localeCompare(b.releaseDate ?? ''))
+			.map((g) => ({ ...g, id: g.id }))
+	);
 }

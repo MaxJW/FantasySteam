@@ -6,12 +6,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import * as Card from '$lib/components/ui/card';
+	import { ArrowLeft } from '@lucide/svelte';
 
 	let name = $state('');
 	let code = $state('');
 	let teamName = $state('My Studio');
-	let seasonalPicks = $state(4);
 	let loading = $state(false);
 	let error = $state('');
 
@@ -22,9 +21,7 @@
 		loading = true;
 		error = '';
 		try {
-			const settings: LeagueSettings = {
-				seasonalPicks
-			};
+			const settings: LeagueSettings = {};
 			const id = await createLeague(
 				user.uid,
 				name.trim(),
@@ -48,72 +45,77 @@
 <svelte:head><title>Create League</title></svelte:head>
 
 <div class="mx-auto max-w-lg">
-	<Card.Root
-		class="overflow-hidden border-primary/20 bg-card/80 shadow-xl shadow-primary/5 backdrop-blur-sm"
-	>
-		<div class="h-1 w-full bg-linear-to-r from-primary via-primary/80 to-accent"></div>
-		<Card.Header class="pb-2">
-			<Card.Title class="text-xl font-semibold text-foreground">League settings</Card.Title>
-			<p class="text-sm text-muted-foreground">Name your league and choose how to invite others.</p>
-		</Card.Header>
+	<div class="mb-4">
+		<Button
+			variant="ghost"
+			href="/dashboard"
+			class="gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+		>
+			<ArrowLeft class="h-4 w-4" /> Back
+		</Button>
+	</div>
+
+	<div class="glass overflow-hidden rounded-xl">
+		<div class="h-1 w-full bg-gradient-to-r from-primary via-primary/60 to-accent/40"></div>
+		<div class="border-b border-white/[0.06] p-5">
+			<h1 class="text-xl font-semibold">Create League</h1>
+			<p class="mt-1 text-sm text-muted-foreground">
+				Name your league and configure the draft settings.
+			</p>
+		</div>
 		<form onsubmit={handleSubmit}>
-			<Card.Content class="space-y-6">
+			<div class="space-y-5 p-5">
 				<div class="space-y-2">
-					<Label for="name" class="text-foreground">League Name</Label>
+					<Label for="name">League Name</Label>
 					<Input
 						id="name"
 						bind:value={name}
 						required
-						placeholder="e.g. Steam Legends 2025"
-						class="h-10"
+						placeholder="e.g. Steam Legends 2026"
+						class="h-10 border-white/[0.08] bg-white/[0.03]"
 					/>
 				</div>
 				<div class="space-y-2">
-					<Label for="teamName" class="text-foreground">Your Team Name</Label>
-					<Input id="teamName" bind:value={teamName} placeholder="e.g. My Studio" class="h-10" />
+					<Label for="teamName">Your Team Name</Label>
+					<Input
+						id="teamName"
+						bind:value={teamName}
+						placeholder="e.g. My Studio"
+						class="h-10 border-white/[0.08] bg-white/[0.03]"
+					/>
 				</div>
 				<div class="space-y-2">
-					<Label for="code" class="text-foreground"
-						>Invite Code
-						<span class="ml-1 text-xs font-normal text-muted-foreground">(optional)</span></Label
-					>
+					<Label for="code">
+						Invite Code
+						<span class="ml-1 text-xs font-normal text-muted-foreground">(optional)</span>
+					</Label>
 					<Input
 						id="code"
 						bind:value={code}
 						placeholder="Leave blank to auto-generate"
-						class="h-10 font-mono uppercase placeholder:font-sans placeholder:normal-case"
+						class="h-10 border-white/[0.08] bg-white/[0.03] font-mono uppercase placeholder:font-sans placeholder:normal-case"
 					/>
-				</div>
-				<div class="space-y-2">
-					<Label for="seasonalPicks" class="text-foreground">Seasonal Picks</Label>
-					<div class="flex items-center gap-3">
-						<Input
-							id="seasonalPicks"
-							type="number"
-							min="3"
-							max="5"
-							bind:value={seasonalPicks}
-							class="h-10 w-20 text-center tabular-nums"
-						/>
-						<span class="text-sm text-muted-foreground">games per season (3–5)</span>
-					</div>
 				</div>
 				{#if error}
 					<div
-						class="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive"
+						class="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
 					>
 						{error}
 					</div>
 				{/if}
-			</Card.Content>
-			<Card.Footer
-				class="flex flex-col gap-3 border-t border-border/50 bg-muted/20 px-6 py-5 sm:flex-row-reverse"
+			</div>
+			<div
+				class="flex flex-col gap-2 border-t border-white/[0.06] bg-white/[0.02] p-5 sm:flex-row-reverse"
 			>
-				<Button type="submit" class="w-full sm:w-auto sm:min-w-[140px]" disabled={loading}>
+				<Button
+					type="submit"
+					class="glow-sm-primary w-full sm:w-auto sm:min-w-[140px]"
+					disabled={loading}
+				>
 					{loading ? 'Creating...' : 'Create League'}
 				</Button>
 				<Button variant="ghost" href="/dashboard" class="w-full sm:w-auto">Cancel</Button>
-			</Card.Footer>
+			</div>
 		</form>
-	</Card.Root>
+	</div>
 </div>

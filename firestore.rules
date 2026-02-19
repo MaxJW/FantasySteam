@@ -1,13 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users: owner can write; any authenticated user can read (e.g. display names for league members)
     match /users/{userId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Leagues: members can read; anyone can read by code for join flow. Create: any auth. Update: must result in request.auth in members. Delete: commissioner only (use resource.data — delete has no request.resource).
     match /leagues/{leagueId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
@@ -15,13 +13,11 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.commissionerId == request.auth.uid;
     }
 
-    // Helper: league exists and user is a member (exists() first so get().data is safe)
     function isLeagueMember(leagueId) {
       return exists(/databases/$(database)/documents/leagues/$(leagueId))
         && request.auth.uid in get(/databases/$(database)/documents/leagues/$(leagueId)).data.get('members', []);
     }
 
-    // Teams: league members can read/write (for their own team or league operations). Delete: commissioner only (use league doc — team has no commissionerId).
     match /leagues/{leagueId}/teams/{userId} {
       allow read: if request.auth != null && isLeagueMember(leagueId);
       allow create: if request.auth != null && isLeagueMember(leagueId);
@@ -29,13 +25,23 @@ service cloud.firestore {
       allow delete: if request.auth != null && get(/databases/$(database)/documents/leagues/$(leagueId)).data.commissionerId == request.auth.uid;
     }
 
-    // Drafts: league members can read/write. Delete: commissioner only (use league doc — draft has no commissionerId).
-    match /leagues/{leagueId}/drafts/{season} {
-      allow read, write: if request.auth != null && isLeagueMember(leagueId);
+    match /leagues/{leagueId}/drafts/{draftId} {
+			allow read: if request.auth != null;
+			allow create, update: if request.auth != null && isLeagueMember(leagueId);
       allow delete: if request.auth != null && get(/databases/$(database)/documents/leagues/$(leagueId)).data.commissionerId == request.auth.uid;
     }
+    
+    // Scoring subcollection (bomb adjustments) — written by Admin SDK, read-only for clients.
+    match /leagues/{leagueId}/scoring/{date} {
+      allow read: if request.auth != null && isLeagueMember(leagueId);
+      allow write: if false;
+    }
 
-    // Games: metrics and history only (game metadata is in app from games.json). Scripts write via Admin SDK.
+    match /meta/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
     match /games/{gameId} {
       allow read: if request.auth != null;
       allow write: if false;

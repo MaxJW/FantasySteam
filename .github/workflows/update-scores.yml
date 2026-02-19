@@ -3,7 +3,17 @@ name: Update scores
 on:
   schedule:
     - cron: '0 6 * * *'
+    - cron: '0 18 * * *'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode'
+        required: false
+        default: 'scoring'
+        type: choice
+        options:
+          - scoring
+          - ccu-only
 
 jobs:
   update:
@@ -21,4 +31,9 @@ jobs:
       - name: Run update-scores
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: npm run update-scores
+        run: |
+          if [[ "${{ github.event.schedule }}" == "0 6 * * *" ]] || [[ "${{ github.event.inputs.mode }}" == "ccu-only" ]]; then
+            npm run update-scores -- --ccu-only
+          else
+            npm run update-scores
+          fi
