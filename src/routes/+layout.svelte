@@ -20,7 +20,8 @@
 
 	$effect(() => {
 		const unsub = currentUser.subscribe((u) => {
-			if (path !== '/' && u === null) goto('/');
+			const publicPaths = ['/', '/how-to-play'];
+			if (!publicPaths.includes(path) && u === null) goto('/');
 		});
 		return unsub;
 	});
@@ -52,15 +53,13 @@
 							>
 						</span>
 					</a>
-					{#if user}
-						<a
-							href="/how-to-play"
-							class="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
-							aria-label="How to play"
-						>
-							<CircleQuestionMark class="size-4" />
-						</a>
-					{/if}
+					<a
+						href="/how-to-play"
+						class="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
+						aria-label="How to play"
+					>
+						<CircleQuestionMark class="size-4" />
+					</a>
 					{#if user}
 						<nav class="hidden gap-1 md:flex">
 							<a

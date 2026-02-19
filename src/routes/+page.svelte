@@ -36,20 +36,10 @@
 	</div>
 {:else}
 	<div class="relative flex flex-col items-center justify-center py-12 md:py-20 lg:py-28">
-		<!-- Ambient glow -->
-		<div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-			<div
-				class="absolute top-1/4 left-1/2 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.07] blur-[120px]"
-			></div>
-			<div
-				class="absolute right-1/4 bottom-1/4 h-[300px] w-[400px] rounded-full bg-accent/[0.05] blur-[100px]"
-			></div>
-		</div>
-
 		<div class="relative z-10 flex max-w-3xl flex-col items-center space-y-8 text-center">
 			<div class="animate-fade-in-up space-y-4">
 				<h1
-					class="text-gradient-hero text-5xl font-extrabold tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl"
+					class="text-gradient-hero pb-3 text-5xl font-extrabold tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl"
 				>
 					Fantasy Steam League
 				</h1>
@@ -115,33 +105,6 @@
 				<p class="text-sm text-muted-foreground">
 					Earn points daily based on real Steam data and climb the leaderboard.
 				</p>
-			</div>
-		</div>
-
-		<!-- Pick type pills -->
-		<div
-			class="relative z-10 mt-12 flex animate-fade-in-up flex-wrap items-center justify-center gap-3"
-			style="animation-delay: 0.55s"
-		>
-			<div
-				class="flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.03] px-3.5 py-1.5 text-xs font-medium text-muted-foreground"
-			>
-				<Target class="h-3.5 w-3.5 text-accent" /> Hit Picks
-			</div>
-			<div
-				class="flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.03] px-3.5 py-1.5 text-xs font-medium text-muted-foreground"
-			>
-				<Bomb class="h-3.5 w-3.5 text-destructive" /> Bomb Picks
-			</div>
-			<div
-				class="flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.03] px-3.5 py-1.5 text-xs font-medium text-muted-foreground"
-			>
-				<Snowflake class="h-3.5 w-3.5 text-sky-400" /> Seasonal Picks
-			</div>
-			<div
-				class="flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.03] px-3.5 py-1.5 text-xs font-medium text-muted-foreground"
-			>
-				<TrendingUp class="h-3.5 w-3.5 text-primary" /> Live Scoring
 			</div>
 		</div>
 	</div>

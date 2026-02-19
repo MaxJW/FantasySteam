@@ -2,7 +2,15 @@
 	import type { GameListEntry } from '$lib/db';
 	import type { Game } from '$lib/db';
 	import type { GameListSortBy, GameListOrder } from '$lib/db';
-	import { getGame, getGameListPage, getGameListYears } from '$lib/db';
+	import type { DraftPhase } from '$lib/db';
+	import {
+		getGame,
+		getGameListPage,
+		getGameListYears,
+		DRAFT_PHASES,
+		PHASE_CONFIG,
+		getPhaseReleaseDateRange
+	} from '$lib/db';
 	import * as Select from '$lib/components/ui/select';
 	import * as Table from '$lib/components/ui/table';
 	import { Button } from '$lib/components/ui/button';
@@ -15,7 +23,8 @@
 		ArrowUp,
 		ArrowDown,
 		ArrowUpDown,
-		Search
+		Search,
+		Snowflake
 	} from '@lucide/svelte';
 
 	type ViewMode = 'table' | 'grid';
@@ -38,6 +47,7 @@
 
 	let years = $state<string[]>([]);
 	let selectedYear = $state<string>('');
+	let selectedSeason = $state<DraftPhase | ''>('');
 	let games = $state<GameListEntry[]>([]);
 	let totalCount = $state(0);
 	let loadingYears = $state(true);
@@ -87,12 +97,18 @@
 		loadingGames = true;
 		games = [];
 		totalCount = 0;
+		const opts: Parameters<typeof getGameListPage>[3] = {
+			sortBy,
+			order,
+			search: searchQuery.trim() || undefined
+		};
+		if (selectedSeason) {
+			const { start, end } = getPhaseReleaseDateRange(selectedSeason, year);
+			opts.releaseFrom = start;
+			opts.releaseTo = end;
+		}
 		try {
-			const { games: page, total } = await getGameListPage(year, PAGE_SIZE, 0, {
-				sortBy,
-				order,
-				search: searchQuery.trim() || undefined
-			});
+			const { games: page, total } = await getGameListPage(year, PAGE_SIZE, 0, opts);
 			games = page;
 			totalCount = total;
 		} finally {
@@ -105,12 +121,18 @@
 		if (!year || Number.isNaN(year) || loadingMore || loadingGames) return;
 		if (games.length >= totalCount) return;
 		loadingMore = true;
+		const opts: Parameters<typeof getGameListPage>[3] = {
+			sortBy,
+			order,
+			search: searchQuery.trim() || undefined
+		};
+		if (selectedSeason) {
+			const { start, end } = getPhaseReleaseDateRange(selectedSeason, year);
+			opts.releaseFrom = start;
+			opts.releaseTo = end;
+		}
 		try {
-			const { games: page, total } = await getGameListPage(year, PAGE_SIZE, games.length, {
-				sortBy,
-				order,
-				search: searchQuery.trim() || undefined
-			});
+			const { games: page, total } = await getGameListPage(year, PAGE_SIZE, games.length, opts);
 			games = [...games, ...page];
 			totalCount = total;
 		} finally {
@@ -129,6 +151,7 @@
 
 	$effect(() => {
 		const _ = sortOption;
+		const __ = selectedSeason;
 		if (selectedYear) {
 			loadFirstPage();
 		}
@@ -185,6 +208,23 @@
 						<Select.Content>
 							{#each years as y}
 								<Select.Item value={String(y)} label={String(y)}>{y}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
+
+				<div class="flex items-center gap-2">
+					<Snowflake class="h-4 w-4 text-muted-foreground" />
+					<Select.Root bind:value={selectedSeason} type="single">
+						<Select.Trigger class="w-[130px] border-white/[0.08] bg-white/[0.04]">
+							{selectedSeason ? PHASE_CONFIG[selectedSeason].label : 'All seasons'}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="" label="All seasons">All seasons</Select.Item>
+							{#each DRAFT_PHASES as phase}
+								<Select.Item value={phase} label={PHASE_CONFIG[phase].label}>
+									{PHASE_CONFIG[phase].label}
+								</Select.Item>
 							{/each}
 						</Select.Content>
 					</Select.Root>
@@ -263,7 +303,11 @@
 		</div>
 	{:else if games.length === 0}
 		<div class="glass rounded-xl py-10 text-center text-sm text-muted-foreground">
-			No games found{searchQuery ? ` matching "${searchQuery}"` : ` for ${selectedYear}`}.
+			No games found{searchQuery
+				? ` matching "${searchQuery}"`
+				: selectedSeason
+					? ` for ${selectedYear} ${PHASE_CONFIG[selectedSeason].label}`
+					: ` for ${selectedYear}`}.
 		</div>
 	{:else if viewMode === 'table'}
 		<div class="overflow-hidden rounded-xl border border-white/[0.06]">

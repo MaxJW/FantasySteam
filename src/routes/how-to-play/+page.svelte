@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Badge } from '$lib/components/ui/badge';
+	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
 	import {
 		Target,
@@ -11,13 +12,18 @@
 		Users,
 		Zap,
 		Star,
-		TrendingUp
+		TrendingUp,
+		ArrowLeft
 	} from '@lucide/svelte';
 </script>
 
 <svelte:head><title>How to Play</title></svelte:head>
 
 <div class="mx-auto max-w-3xl space-y-8 pb-16">
+	<Button onclick={() => history.back()} class="glow-sm-primary gap-2">
+		<ArrowLeft class="size-4" /> Back
+	</Button>
+
 	<div class="space-y-2">
 		<h1 class="text-3xl font-bold tracking-tight md:text-4xl">How to Play</h1>
 		<p class="text-muted-foreground">
@@ -88,9 +94,9 @@
 		</div>
 		<div class="space-y-5 p-5">
 			<p class="text-sm text-muted-foreground">
-				Scores update <strong class="text-foreground">twice daily</strong> based on each game's
-				real-world Steam performance. The system captures peak concurrent players during Steam's
-				busiest hours for the most accurate data.
+				Scores update <strong class="text-foreground">twice daily</strong> based on each game's real-world
+				Steam performance. The system captures peak concurrent players during Steam's busiest hours for
+				the most accurate data.
 			</p>
 
 			<div class="overflow-hidden rounded-lg border border-white/[0.06]">
@@ -99,8 +105,8 @@
 				</div>
 				<div class="space-y-2 p-4">
 					<p class="mb-3 text-xs text-muted-foreground">
-						Points use square-root scaling so breakout hits feel meaningfully different from
-						average performers.
+						Points use square-root scaling so breakout hits feel meaningfully different from average
+						performers.
 					</p>
 					<div class="flex items-center justify-between text-sm">
 						<span class="text-muted-foreground">Sales Score</span>
@@ -172,8 +178,8 @@
 					<p class="text-sm text-muted-foreground">
 						If a game's peak CCU suddenly exceeds <strong class="text-foreground">3x</strong>
 						its 7-day average, it earns a one-time
-						<span class="font-mono font-bold text-emerald-400">+50</span> breakout bonus.
-						Rewards picking sleeper hits that pop off.
+						<span class="font-mono font-bold text-emerald-400">+50</span> breakout bonus. Rewards picking
+						sleeper hits that pop off.
 					</p>
 				</div>
 			</div>
@@ -185,9 +191,9 @@
 					Each day, the bomb threshold is set at the <strong class="text-foreground"
 						>25th percentile</strong
 					>
-					of all active games' daily scores. If a bomb game scores below this threshold, the
-					difference is split equally among all other players as a penalty. The threshold adapts
-					naturally as more games release throughout the season.
+					of all active games' daily scores. If a bomb game scores below this threshold, the difference
+					is split equally among all other players as a penalty. The threshold adapts naturally as more
+					games release throughout the season.
 				</p>
 			</div>
 
