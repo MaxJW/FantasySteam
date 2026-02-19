@@ -6,9 +6,11 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { ArrowLeft, Users } from '@lucide/svelte';
+	import { getDefaultStudioName } from '$lib/utils';
 
+	const defaultStudio = () => getDefaultStudioName(getCurrentUser()?.displayName);
 	let code = $state('');
-	let teamName = $state('My Studio');
+	let studioName = $state(defaultStudio());
 	let loading = $state(false);
 	let error = $state('');
 
@@ -25,7 +27,7 @@
 				loading = false;
 				return;
 			}
-			await joinLeague(league.id, user.uid, teamName.trim() || 'My Studio');
+			await joinLeague(league.id, user.uid, studioName.trim() || defaultStudio());
 			await goto(`/league/${league.id}`);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to join league';
@@ -64,11 +66,11 @@
 		<form onsubmit={handleSubmit}>
 			<div class="space-y-4 p-5">
 				<div class="space-y-2">
-					<Label for="teamName">Your Team Name</Label>
+					<Label for="studioName">Your Studio Name</Label>
 					<Input
-						id="teamName"
-						bind:value={teamName}
-						placeholder="My Studio"
+						id="studioName"
+						bind:value={studioName}
+						placeholder="e.g. John's Studio"
 						class="h-10 border-white/[0.08] bg-white/[0.03]"
 					/>
 				</div>

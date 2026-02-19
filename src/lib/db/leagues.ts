@@ -13,7 +13,13 @@ import {
 } from 'firebase/firestore';
 import { db } from '$lib/firebase';
 import type { League, LeagueSettings, Team, TeamPicks, DraftPhase, DraftStatus } from './types';
-import { DRAFT_PHASES, getDraftId, getNextPhase, getScoringGameIds } from './types';
+import {
+	DRAFT_PHASES,
+	getDraftId,
+	getNextPhase,
+	getScoringGameIds,
+	getEffectiveCurrentPhase
+} from './types';
 import { getGameHistory } from './games';
 
 const LEAGUES = 'leagues';
@@ -109,6 +115,22 @@ export async function getDraftPhaseStatuses(
 	return result;
 }
 
+/**
+ * Recomputes the effective current phase from the current date and draft statuses,
+ * and updates the league document if it's stale. Call when viewing the league page.
+ */
+export async function syncLeagueCurrentPhase(leagueId: string): Promise<void> {
+	const league = await getLeague(leagueId);
+	if (!league) return;
+
+	const phaseStatuses = await getDraftPhaseStatuses(leagueId, league.season);
+	const effectivePhase = getEffectiveCurrentPhase(phaseStatuses);
+
+	if (effectivePhase && effectivePhase !== league.currentPhase) {
+		await updateDoc(leagueRef(leagueId), { currentPhase: effectivePhase });
+	}
+}
+
 // -----------------------------------------------------------------------
 // Create & Join
 // -----------------------------------------------------------------------
@@ -127,6 +149,8 @@ function getDefaultSeason(): string {
 	return (now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear()).toString();
 }
 
+export const LEAGUE_CODE_IN_USE = 'League code already in use';
+
 export async function createLeague(
 	commissionerId: string,
 	name: string,
@@ -134,10 +158,14 @@ export async function createLeague(
 	settings: LeagueSettings,
 	teamName: string = 'My Studio'
 ): Promise<string> {
+	const normalizedCode = code.trim().toUpperCase();
+	const existing = await getLeagueByCode(normalizedCode);
+	if (existing) throw new Error(LEAGUE_CODE_IN_USE);
+
 	const ref = doc(collection(db, LEAGUES));
 	const league: League = {
 		name,
-		code: code.trim().toUpperCase(),
+		code: normalizedCode,
 		commissionerId,
 		settings,
 		season: getDefaultSeason(),

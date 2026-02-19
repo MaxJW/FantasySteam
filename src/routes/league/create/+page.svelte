@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { getCurrentUser } from '$lib/auth';
-	import { createLeague } from '$lib/db';
+	import { createLeague, LEAGUE_CODE_IN_USE } from '$lib/db';
 	import type { LeagueSettings } from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { ArrowLeft } from '@lucide/svelte';
+	import { getDefaultStudioName } from '$lib/utils';
 
+	const defaultStudio = () => getDefaultStudioName(getCurrentUser()?.displayName);
 	let name = $state('');
 	let code = $state('');
-	let teamName = $state('My Studio');
+	let studioName = $state(defaultStudio());
 	let loading = $state(false);
 	let error = $state('');
 
@@ -22,14 +24,31 @@
 		error = '';
 		try {
 			const settings: LeagueSettings = {};
-			const id = await createLeague(
-				user.uid,
-				name.trim(),
-				code.trim() || generateCode(),
-				settings,
-				teamName.trim() || 'My Studio'
-			);
-			await goto(`/league/${id}`);
+			let codeToUse = generateCode();
+			const maxRetries = 5;
+			for (let attempt = 0; attempt < maxRetries; attempt++) {
+				try {
+					const id = await createLeague(
+						user.uid,
+						name.trim(),
+						codeToUse,
+						settings,
+						studioName.trim() || defaultStudio()
+					);
+					await goto(`/league/${id}`);
+					return;
+				} catch (err) {
+					if (
+						err instanceof Error &&
+						err.message === LEAGUE_CODE_IN_USE &&
+						attempt < maxRetries - 1
+					) {
+						codeToUse = generateCode();
+						continue;
+					}
+					throw err;
+				}
+			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to create league';
 		} finally {
@@ -76,24 +95,12 @@
 					/>
 				</div>
 				<div class="space-y-2">
-					<Label for="teamName">Your Team Name</Label>
+					<Label for="studioName">Your Studio Name</Label>
 					<Input
-						id="teamName"
-						bind:value={teamName}
-						placeholder="e.g. My Studio"
+						id="studioName"
+						bind:value={studioName}
+						placeholder="e.g. John's Studio"
 						class="h-10 border-white/[0.08] bg-white/[0.03]"
-					/>
-				</div>
-				<div class="space-y-2">
-					<Label for="code">
-						Invite Code
-						<span class="ml-1 text-xs font-normal text-muted-foreground">(optional)</span>
-					</Label>
-					<Input
-						id="code"
-						bind:value={code}
-						placeholder="Leave blank to auto-generate"
-						class="h-10 border-white/[0.08] bg-white/[0.03] font-mono uppercase placeholder:font-sans placeholder:normal-case"
 					/>
 				</div>
 				{#if error}

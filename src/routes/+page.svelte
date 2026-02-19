@@ -61,7 +61,10 @@
 				</p>
 			</div>
 
-			<div class="flex flex-wrap justify-center gap-3 animate-fade-in-up" style="animation-delay: 0.15s">
+			<div
+				class="flex animate-fade-in-up flex-wrap justify-center gap-3"
+				style="animation-delay: 0.15s"
+			>
 				<Button
 					size="lg"
 					onclick={handleSignIn}

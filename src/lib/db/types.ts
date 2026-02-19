@@ -63,6 +63,26 @@ export function getNextPhase(phase: DraftPhase): DraftPhase | null {
 	return idx < DRAFT_PHASES.length - 1 ? DRAFT_PHASES[idx + 1] : null;
 }
 
+/** Maps calendar month to phase based on release windows. Jan-Apr=winter, May-Aug=summer, Sep-Dec=fall. */
+export function getPhaseForDate(date: Date): DraftPhase {
+	const month = date.getMonth(); // 0-11
+	if (month <= 3) return 'winter';
+	if (month <= 7) return 'summer';
+	return 'fall';
+}
+
+/** Returns the phase whose draft should be done next, based on current date and completed phases. */
+export function getEffectiveCurrentPhase(
+	phaseStatuses: Record<DraftPhase, DraftStatus | null>
+): DraftPhase | null {
+	let phase: DraftPhase | null = getPhaseForDate(new Date());
+	while (phase) {
+		if (phaseStatuses[phase] !== 'completed') return phase;
+		phase = getNextPhase(phase);
+	}
+	return null;
+}
+
 export function getPhaseReleaseDateRange(
 	phase: DraftPhase,
 	year: number

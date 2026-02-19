@@ -7,10 +7,10 @@
 		getLeague,
 		getTeams,
 		getGame,
-		getDraft,
 		getUpcomingGames,
 		getTeamScoresHistory,
 		getDraftPhaseStatuses,
+		syncLeagueCurrentPhase,
 		updateLeagueSettings,
 		deleteLeague,
 		getUserProfile
@@ -20,14 +20,12 @@
 		DRAFT_PHASES,
 		PHASE_CONFIG,
 		getDraftId,
-		getAllSeasonalGameIds,
 		getScoringGameIds,
 		getSeasonalPicksForPlayerCount
 	} from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -44,7 +42,6 @@
 		Bomb,
 		Snowflake,
 		Shuffle,
-		Calendar,
 		CheckCircle,
 		Circle,
 		Loader,
@@ -123,7 +120,12 @@
 		const id = leagueId;
 		const season = league?.season;
 		if (!id || !season) return;
-		getDraftPhaseStatuses(id, season).then((s) => (phaseStatuses = s));
+		getDraftPhaseStatuses(id, season).then(async (s) => {
+			phaseStatuses = s;
+			await syncLeagueCurrentPhase(id);
+			const updated = await getLeague(id);
+			if (updated) league = updated;
+		});
 	});
 
 	$effect(() => {
@@ -316,6 +318,9 @@
 		const status = phaseStatuses[phase];
 		if (status === 'completed') return 'Complete';
 		if (status === 'active' || status === 'pending') return 'In Progress';
+		const idx = DRAFT_PHASES.indexOf(phase);
+		const currentIdx = DRAFT_PHASES.indexOf(league?.currentPhase ?? 'winter');
+		if (idx < currentIdx) return 'Skipped';
 		if (league?.currentPhase === phase) return 'Ready';
 		return 'Upcoming';
 	}
@@ -324,7 +329,7 @@
 		if (!league) return false;
 		const idx = DRAFT_PHASES.indexOf(phase);
 		const currentIdx = DRAFT_PHASES.indexOf(league.currentPhase);
-		if (idx > currentIdx) return false;
+		if (idx !== currentIdx) return false;
 		const status = phaseStatuses[phase];
 		return status !== 'completed';
 	}
@@ -412,6 +417,7 @@
 			{#each DRAFT_PHASES as phase}
 				{@const cfg = PHASE_CONFIG[phase]}
 				{@const status = phaseStatuses[phase]}
+				{@const phaseLabel = getPhaseStatusLabel(phase)}
 				{@const StatusIcon = getPhaseStatusIcon(phase)}
 				{@const isCurrent = league.currentPhase === phase}
 				{@const canEnter = canEnterDraft(phase)}
@@ -420,7 +426,9 @@
 						? 'border-primary/40 bg-primary/[0.04]'
 						: status === 'completed'
 							? 'border-accent/20 bg-accent/[0.03]'
-							: 'border-white/[0.06] bg-white/[0.02] opacity-60'}"
+							: phaseLabel === 'Skipped'
+								? 'border-white/[0.04] bg-white/[0.01] opacity-50'
+								: 'border-white/[0.06] bg-white/[0.02] opacity-60'}"
 				>
 					{#if isCurrent}
 						<div
@@ -465,6 +473,8 @@
 								</Button>
 							{:else if status === 'completed'}
 								<p class="text-center text-xs text-muted-foreground">Draft complete</p>
+							{:else if phaseLabel === 'Skipped'}
+								<p class="text-center text-xs text-muted-foreground">Skipped</p>
 							{:else}
 								<p class="text-center text-xs text-muted-foreground">
 									Complete {PHASE_CONFIG[DRAFT_PHASES[DRAFT_PHASES.indexOf(phase) - 1]]?.label ??
