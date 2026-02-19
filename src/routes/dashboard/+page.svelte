@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { currentUser } from '$lib/auth';
 	import { getLeaguesForUser } from '$lib/db';
-	import { PHASE_CONFIG } from '$lib/db';
+	import { PHASE_CONFIG, isPastSeason } from '$lib/db';
 	import type { League } from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
@@ -22,7 +22,11 @@
 	});
 
 	function getStatusLabel(league: League): string {
-		if (league.status === 'completed') return 'Completed';
+		if (league.status === 'completed') {
+			return league.season && isPastSeason(league.season)
+				? `Season ${league.season} Complete`
+				: 'Completed';
+		}
 		if (league.status === 'draft') return 'Pre-Season';
 		return `${PHASE_CONFIG[league.currentPhase]?.label ?? ''} Phase`;
 	}

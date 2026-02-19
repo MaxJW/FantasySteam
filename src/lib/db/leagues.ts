@@ -12,13 +12,22 @@ import {
 	type DocumentReference
 } from 'firebase/firestore';
 import { db } from '$lib/firebase';
-import type { League, LeagueSettings, Team, TeamPicks, DraftPhase, DraftStatus } from './types';
+import type {
+	League,
+	LeagueSettings,
+	Team,
+	TeamPicks,
+	DraftPhase,
+	DraftStatus,
+	SeasonSnapshot
+} from './types';
 import {
 	DRAFT_PHASES,
 	getDraftId,
 	getNextPhase,
 	getScoringGameIds,
-	getEffectiveCurrentPhase
+	getEffectiveCurrentPhase,
+	getSeasonEndDate
 } from './types';
 import { getGameHistory } from './games';
 
@@ -293,7 +302,8 @@ export async function deleteLeague(leagueId: string): Promise<void> {
 
 /** Calculate cumulative team scores per day for all teams in a league. */
 export async function getTeamScoresHistory(
-	leagueId: string
+	leagueId: string,
+	seasonEndDate?: string
 ): Promise<Map<string, Map<string, number>>> {
 	const league = await getLeague(leagueId);
 	const teams = await getTeams(leagueId);
@@ -311,13 +321,14 @@ export async function getTeamScoresHistory(
 	for (const gameId of allGameIds) {
 		try {
 			const history = await getGameHistory(gameId);
-			gameHistories.set(
-				gameId,
-				history.map((h) => ({
-					date: h.date || '',
-					points: h.dailyPoints
-				}))
-			);
+			let entries = history.map((h) => ({
+				date: h.date || '',
+				points: h.dailyPoints
+			}));
+			if (seasonEndDate) {
+				entries = entries.filter((e) => e.date && e.date <= seasonEndDate);
+			}
+			gameHistories.set(gameId, entries);
 		} catch {
 			// Game may not have history yet
 		}
@@ -327,8 +338,9 @@ export async function getTeamScoresHistory(
 	const storedBombAdj = new Map<string, Record<string, number>>();
 	for (const scoringDoc of scoringSnap.docs) {
 		const data = scoringDoc.data();
-		if (data.bombAdjustments) {
-			storedBombAdj.set(data.date ?? scoringDoc.id, data.bombAdjustments);
+		const dateKey = data.date ?? scoringDoc.id;
+		if (data.bombAdjustments && (!seasonEndDate || dateKey <= seasonEndDate)) {
+			storedBombAdj.set(dateKey, data.bombAdjustments);
 		}
 	}
 
@@ -336,7 +348,10 @@ export async function getTeamScoresHistory(
 	gameHistories.forEach((history) => {
 		history.forEach((h) => allDates.add(h.date));
 	});
-	const sortedDates = Array.from(allDates).sort();
+	let sortedDates = Array.from(allDates).sort();
+	if (seasonEndDate) {
+		sortedDates = sortedDates.filter((d) => d <= seasonEndDate);
+	}
 
 	for (const team of teams) {
 		teamScoresByDate.set(team.id, new Map<string, number>());
@@ -369,4 +384,86 @@ export async function getTeamScoresHistory(
 	}
 
 	return teamScoresByDate;
+}
+
+// -----------------------------------------------------------------------
+// Season Snapshots (past seasons)
+// -----------------------------------------------------------------------
+
+const SEASON_RESULTS = 'seasonResults';
+
+function seasonSnapshotRef(leagueId: string, season: string): DocumentReference {
+	return doc(db, LEAGUES, leagueId, SEASON_RESULTS, season);
+}
+
+export async function getSeasonSnapshot(
+	leagueId: string,
+	season: string
+): Promise<SeasonSnapshot | null> {
+	const snap = await getDoc(seasonSnapshotRef(leagueId, season));
+	if (!snap.exists()) return null;
+	return snap.data() as SeasonSnapshot;
+}
+
+export async function computeAndSaveSeasonSnapshot(
+	leagueId: string,
+	season: string
+): Promise<SeasonSnapshot> {
+	const seasonEnd = getSeasonEndDate(season);
+	const history = await getTeamScoresHistory(leagueId, seasonEnd);
+	const teams = await getTeams(leagueId);
+
+	const allDates = new Set<string>();
+	history.forEach((scores) => {
+		scores.forEach((_, date) => allDates.add(date));
+	});
+	const sortedDates = Array.from(allDates).sort();
+
+	const finalScores: Record<string, number> = {};
+	for (const team of teams) {
+		const scores = history.get(team.id);
+		const lastDate = sortedDates[sortedDates.length - 1];
+		finalScores[team.id] = lastDate && scores ? scores.get(lastDate) ?? 0 : 0;
+	}
+
+	const sortedByScore = [...teams].sort(
+		(a, b) => (finalScores[b.id] ?? 0) - (finalScores[a.id] ?? 0)
+	);
+	const finalRanks: Record<string, number> = {};
+	sortedByScore.forEach((t, i) => {
+		finalRanks[t.id] = i + 1;
+	});
+
+	const series = sortedByScore.map((t) => ({
+		teamId: t.id,
+		data: sortedDates.map((d) => history.get(t.id)?.get(d) ?? 0)
+	}));
+
+	const snapshot: SeasonSnapshot = {
+		finalScores,
+		finalRanks,
+		graphData: { dates: sortedDates, series },
+		computedAt: serverTimestamp() as SeasonSnapshot['computedAt']
+	};
+
+	const ref = seasonSnapshotRef(leagueId, season);
+	const existing = await getDoc(ref);
+	if (!existing.exists()) {
+		await setDoc(ref, {
+			...snapshot,
+			computedAt: serverTimestamp()
+		});
+		const written = await getDoc(ref);
+		return written.data() as SeasonSnapshot;
+	}
+	return existing.data() as SeasonSnapshot;
+}
+
+export async function getSeasonSnapshotOrCompute(
+	leagueId: string,
+	season: string
+): Promise<SeasonSnapshot> {
+	const existing = await getSeasonSnapshot(leagueId, season);
+	if (existing) return existing;
+	return computeAndSaveSeasonSnapshot(leagueId, season);
 }

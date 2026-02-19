@@ -9,19 +9,21 @@
 		getGame,
 		getUpcomingGames,
 		getTeamScoresHistory,
+		getSeasonSnapshotOrCompute,
 		getDraftPhaseStatuses,
 		syncLeagueCurrentPhase,
 		updateLeagueSettings,
 		deleteLeague,
 		getUserProfile
 	} from '$lib/db';
-	import type { Team, Game, DraftPhase, DraftStatus } from '$lib/db';
+	import type { Team, Game, DraftPhase, DraftStatus, SeasonSnapshot } from '$lib/db';
 	import {
 		DRAFT_PHASES,
 		PHASE_CONFIG,
 		getDraftId,
 		getScoringGameIds,
-		getSeasonalPicksForPlayerCount
+		getSeasonalPicksForPlayerCount,
+		isPastSeason
 	} from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -46,7 +48,8 @@
 		Circle,
 		Loader,
 		TrendingUp,
-		ArrowLeft
+		ArrowLeft,
+		Trophy
 	} from '@lucide/svelte';
 
 	let league = $state<Awaited<ReturnType<typeof getLeague>>>(null);
@@ -74,6 +77,7 @@
 		summer: null,
 		fall: null
 	});
+	let seasonSnapshot = $state<SeasonSnapshot | null>(null);
 
 	async function openGameDetail(gameId: string) {
 		selectedGameId = gameId;
@@ -122,9 +126,11 @@
 		if (!id || !season) return;
 		getDraftPhaseStatuses(id, season).then(async (s) => {
 			phaseStatuses = s;
-			await syncLeagueCurrentPhase(id);
-			const updated = await getLeague(id);
-			if (updated) league = updated;
+			if (!isPastSeason(season)) {
+				await syncLeagueCurrentPhase(id);
+				const updated = await getLeague(id);
+				if (updated) league = updated;
+			}
 		});
 	});
 
@@ -180,11 +186,29 @@
 	});
 
 	$effect(() => {
-		if (!leagueId || teams.length === 0) return;
+		const id = leagueId;
+		const season = league?.season;
+		if (!id || teams.length === 0) return;
 		loadingHistory = true;
-		getTeamScoresHistory(leagueId)
-			.then((history) => (teamScoresHistory = history))
-			.finally(() => (loadingHistory = false));
+		seasonSnapshot = null;
+		if (season && isPastSeason(season)) {
+			getSeasonSnapshotOrCompute(id, season)
+				.then((snap) => {
+					seasonSnapshot = snap;
+					const history = new Map<string, Map<string, number>>();
+					for (const s of snap.graphData.series) {
+						const byDate = new Map<string, number>();
+						snap.graphData.dates.forEach((d, i) => byDate.set(d, s.data[i] ?? 0));
+						history.set(s.teamId, byDate);
+					}
+					teamScoresHistory = history;
+				})
+				.finally(() => (loadingHistory = false));
+		} else {
+			getTeamScoresHistory(id)
+				.then((history) => (teamScoresHistory = history))
+				.finally(() => (loadingHistory = false));
+		}
 	});
 
 	$effect(() => {
@@ -209,9 +233,16 @@
 		return raw + (team.bombAdjustment ?? 0);
 	}
 
-	const teamsSortedByScore = $derived(
-		[...teams].sort((a, b) => getTeamComputedScore(b) - getTeamComputedScore(a))
-	);
+	const isPastSeasonView = $derived(!!league && !!league.season && isPastSeason(league.season));
+
+	const teamsSortedByScore = $derived.by(() => {
+		if (isPastSeasonView && seasonSnapshot) {
+			return [...teams].sort(
+				(a, b) => (seasonSnapshot!.finalRanks[a.id] ?? 999) - (seasonSnapshot!.finalRanks[b.id] ?? 999)
+			);
+		}
+		return [...teams].sort((a, b) => getTeamComputedScore(b) - getTeamComputedScore(a));
+	});
 
 	function getAllPickedGames(
 		team: Team & { id: string }
@@ -231,6 +262,15 @@
 	}
 
 	const graphData = $derived.by(() => {
+		if (isPastSeasonView && seasonSnapshot?.graphData) {
+			return {
+				dates: seasonSnapshot.graphData.dates,
+				series: seasonSnapshot.graphData.series.map((s) => ({
+					name: userProfiles[s.teamId]?.displayName || teams.find((t) => t.id === s.teamId)?.name || 'Unknown',
+					data: s.data
+				}))
+			};
+		}
 		if (teamScoresHistory.size === 0) return null;
 		const allDates = new Set<string>();
 		teamScoresHistory.forEach((scores) => {
@@ -246,6 +286,13 @@
 		});
 		return { dates: sortedDates, series };
 	});
+
+	function getDisplayScore(team: Team & { id: string }): number {
+		if (isPastSeasonView && seasonSnapshot) {
+			return seasonSnapshot.finalScores[team.id] ?? 0;
+		}
+		return getTeamComputedScore(team);
+	}
 
 	function formatDate(dateStr: string): string {
 		if (!dateStr) return '';
@@ -378,7 +425,7 @@
 			<div class="space-y-2">
 				<div class="flex items-center gap-3">
 					<h1 class="text-3xl font-bold tracking-tight md:text-4xl">{league.name}</h1>
-					{#if isCommissioner}
+					{#if isCommissioner && !isPastSeasonView}
 						<Button
 							variant="ghost"
 							size="icon"
@@ -412,6 +459,45 @@
 			</div>
 		</div>
 
+		{#if isPastSeasonView && seasonSnapshot}
+			<!-- Winning Screen Hero -->
+			{@const winner = teamsSortedByScore[0]}
+			<div
+				class="overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/10 via-accent/5 to-transparent"
+			>
+				<div class="flex flex-col items-center gap-4 px-6 py-10 text-center sm:flex-row sm:justify-center sm:gap-8 sm:text-left">
+					<div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-accent/20">
+						<Trophy class="h-10 w-10 text-accent" />
+					</div>
+					<div class="space-y-1">
+						<p class="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+							Season {league.season} Complete
+						</p>
+						<h2 class="text-2xl font-bold text-foreground md:text-3xl">
+							{winner
+								? userProfiles[winner.id]?.displayName || winner.name
+								: '—'} is the Champion
+						</h2>
+						{#if winner}
+							<p class="text-lg font-semibold text-primary">
+								Final score: {Math.round(getDisplayScore(winner)).toLocaleString()}
+							</p>
+						{/if}
+					</div>
+					{#if winner}
+						<Avatar.Root class="size-16 shrink-0 ring-2 ring-accent/40 ring-offset-2 ring-offset-background">
+							<Avatar.Image
+								src={userProfiles[winner.id]?.avatarUrl ?? undefined}
+								alt={winner.name}
+							/>
+							<Avatar.Fallback class="text-xl">
+								{(userProfiles[winner.id]?.displayName || winner.name).slice(0, 2).toUpperCase()}
+							</Avatar.Fallback>
+						</Avatar.Root>
+					{/if}
+				</div>
+			</div>
+		{:else}
 		<!-- Phase Timeline -->
 		<div class="grid gap-3 sm:grid-cols-3">
 			{#each DRAFT_PHASES as phase}
@@ -486,9 +572,10 @@
 				</div>
 			{/each}
 		</div>
+		{/if}
 
 		<!-- Settings Panel -->
-		{#if settingsOpen && isCommissioner}
+		{#if settingsOpen && isCommissioner && !isPastSeasonView}
 			<div
 				class="animate-fade-in-up overflow-hidden rounded-xl border border-primary/20 bg-card/60"
 			>
@@ -562,7 +649,9 @@
 				<div class="overflow-hidden rounded-xl border border-white/[0.06] bg-card/40">
 					<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
 						<TrendingUp class="h-4 w-4 text-primary" />
-						<h2 class="font-semibold">Score History</h2>
+						<h2 class="font-semibold">
+							{isPastSeasonView ? 'Season score progression' : 'Score History'}
+						</h2>
 					</div>
 					<div class="p-4">
 						{#if loadingHistory}
@@ -743,7 +832,9 @@
 
 				<!-- Standings -->
 				<div class="space-y-3">
-					<h2 class="text-lg font-semibold">Standings</h2>
+					<h2 class="text-lg font-semibold">
+						{isPastSeasonView ? 'Final Standings' : 'Standings'}
+					</h2>
 					{#if teams.length === 0}
 						<div class="glass rounded-xl py-10 text-center text-sm text-muted-foreground">
 							No teams yet. Wait for the draft!
@@ -781,7 +872,7 @@
 									</div>
 									<div class="flex items-center gap-3">
 										<span class="font-mono text-lg font-bold text-primary"
-											>{Math.round(getTeamComputedScore(team))}</span
+											>{Math.round(getDisplayScore(team))}</span
 										>
 										{#if expandedTeams.has(team.id)}
 											<ChevronUp class="h-4 w-4 text-muted-foreground" />
@@ -825,10 +916,12 @@
 																<Target class="h-2.5 w-2.5 text-accent" />
 																<span class="text-[9px] font-medium text-white">Hit</span>
 															</div>
-															{#if hitGame.score != null}
+															{#if !isPastSeasonView && hitGame.score != null}
 																<span class="font-mono text-[9px] font-bold text-white"
 																	>{Math.round(hitGame.score)}</span
 																>
+															{:else if isPastSeasonView}
+																<span class="text-[9px] text-white/70">—</span>
 															{/if}
 														</div>
 													</button>
@@ -912,10 +1005,12 @@
 																		class="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/80 px-1 py-0.5"
 																	>
 																		<Snowflake class="h-2.5 w-2.5 text-sky-400" />
-																		{#if game.score != null}
+																		{#if !isPastSeasonView && game.score != null}
 																			<span class="font-mono text-[9px] font-bold text-white"
 																				>{Math.round(game.score)}</span
 																			>
+																		{:else if isPastSeasonView}
+																			<span class="text-[9px] text-white/70">—</span>
 																		{/if}
 																	</div>
 																</button>
@@ -977,15 +1072,36 @@
 				</div>
 			</div>
 
-			<!-- Sidebar: Upcoming -->
+			<!-- Sidebar: Upcoming or Season Summary -->
 			<div class="space-y-3">
-				<h2 class="text-lg font-semibold">Upcoming Releases</h2>
-				<div class="overflow-hidden rounded-xl border border-white/[0.06] bg-card/40">
-					<ScrollArea class="h-[calc(100vh-14rem)]">
-						<div class="space-y-1 p-2">
-							{#if upcomingGames.length === 0}
-								<div class="py-10 text-center text-sm text-muted-foreground">No upcoming games</div>
-							{:else}
+				{#if isPastSeasonView}
+					<h2 class="text-lg font-semibold">Season Summary</h2>
+					<div class="overflow-hidden rounded-xl border border-white/[0.06] bg-card/40 p-4">
+						<div class="space-y-2 text-sm text-muted-foreground">
+							<p>{teams.length} players competed in Season {league.season}.</p>
+							<p>
+								{teams.reduce((acc, t) => {
+									const p = t.picks;
+									const count =
+										(p?.hitPick ? 1 : 0) +
+										(p?.bombPick ? 1 : 0) +
+										(p?.winterPicks?.length ?? 0) +
+										(p?.summerPicks?.length ?? 0) +
+										(p?.fallPicks?.length ?? 0) +
+										(p?.altPicks?.length ?? 0);
+									return acc + count;
+								}, 0)} games drafted
+							</p>
+						</div>
+					</div>
+				{:else}
+					<h2 class="text-lg font-semibold">Upcoming Releases</h2>
+					<div class="overflow-hidden rounded-xl border border-white/[0.06] bg-card/40">
+						<ScrollArea class="h-[calc(100vh-14rem)]">
+							<div class="space-y-1 p-2">
+								{#if upcomingGames.length === 0}
+									<div class="py-10 text-center text-sm text-muted-foreground">No upcoming games</div>
+								{:else}
 								{#each upcomingGames as game}
 									{@const teamsWithGame = teams.filter((t) => {
 										const p = t.picks;
@@ -1053,6 +1169,7 @@
 						</div>
 					</ScrollArea>
 				</div>
+				{/if}
 			</div>
 		</div>
 	{/if}

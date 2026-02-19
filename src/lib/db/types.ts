@@ -91,6 +91,18 @@ export function getPhaseReleaseDateRange(
 	return { start: cfg.releaseStart(year), end: cfg.releaseEnd(year) };
 }
 
+/** Returns true if the season year is before the current calendar year (past season). */
+export function isPastSeason(season: string): boolean {
+	const seasonYear = parseInt(season, 10);
+	const currentYear = new Date().getFullYear();
+	return seasonYear < currentYear;
+}
+
+/** Returns December 31st of the given season year (YYYY-12-31). */
+export function getSeasonEndDate(season: string): string {
+	return `${season}-12-31`;
+}
+
 /**
  * Total rounds in a single draft for the given phase.
  * Winter: hit + bomb + N seasonal + alt = N + 3
@@ -156,6 +168,17 @@ export interface League {
 	/** Game IDs that have been delisted from Steam (alt picks replace these). */
 	delistedGames?: string[];
 	createdAt?: Timestamp;
+}
+
+/** Frozen snapshot of final scores and ranks for a past season. */
+export interface SeasonSnapshot {
+	finalScores: Record<string, number>;
+	finalRanks: Record<string, number>;
+	graphData: {
+		dates: string[];
+		series: { teamId: string; data: number[] }[];
+	};
+	computedAt: Timestamp;
 }
 
 // -----------------------------------------------------------------------

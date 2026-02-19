@@ -13,8 +13,48 @@
 		Zap,
 		Star,
 		TrendingUp,
-		ArrowLeft
+		ArrowLeft,
+		Sun,
+		Leaf
 	} from '@lucide/svelte';
+	import { DRAFT_PHASES, getPhaseForDate, PHASE_CONFIG } from '$lib/db/types';
+
+	const now = new Date();
+	const currentPhase = getPhaseForDate(now);
+
+	const phaseIcons = {
+		winter: Snowflake,
+		summer: Sun,
+		fall: Leaf
+	} as const;
+
+	const draftMonthNames: Record<string, string> = {
+		winter: 'December',
+		summer: 'April',
+		fall: 'August'
+	};
+
+	const phaseWindows: Record<string, string> = {
+		winter: 'Jan – Apr',
+		summer: 'May – Aug',
+		fall: 'Sep – Dec'
+	};
+
+	const phases = DRAFT_PHASES.map((phase) => ({
+		phase,
+		label: PHASE_CONFIG[phase].label,
+		draft: draftMonthNames[phase],
+		window: phaseWindows[phase],
+		isCurrent: phase === currentPhase,
+		Icon: phaseIcons[phase]
+	}));
+
+	const nextDraftsText =
+		currentPhase === 'winter'
+			? 'Summer and Fall drafts'
+			: currentPhase === 'summer'
+				? 'Fall draft'
+				: "next year's Winter draft";
 </script>
 
 <svelte:head><title>How to Play</title></svelte:head>
@@ -45,12 +85,30 @@
 				>, each covering a portion of the year's releases.
 			</p>
 			<div class="grid gap-3 sm:grid-cols-3">
-				{#each [{ label: 'Winter', draft: 'December', window: 'Jan – Apr' }, { label: 'Summer', draft: 'April', window: 'May – Aug' }, { label: 'Fall', draft: 'August', window: 'Sep – Dec' }] as phase}
-					<div class="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
-						<Badge variant="outline" class="text-[10px]">{phase.label}</Badge>
+				{#each phases as { phase, label, draft, window, isCurrent, Icon }}
+					<div
+						class="rounded-lg border p-4 transition-colors {isCurrent
+							? 'border-primary/40 bg-primary/[0.06]'
+							: 'border-white/[0.06] bg-white/[0.02]'}"
+					>
+						<div class="flex items-center gap-2">
+							<div
+								class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md {isCurrent
+									? 'bg-primary/20'
+									: 'bg-white/[0.04]'}"
+							>
+								<Icon class="h-4 w-4 {isCurrent ? 'text-primary' : 'text-muted-foreground'}" />
+							</div>
+							<Badge variant="outline" class="text-[10px]">
+								{label}
+								{#if isCurrent}
+									<span class="ml-1 text-primary">(current)</span>
+								{/if}
+							</Badge>
+						</div>
 						<p class="mt-2 text-xs text-muted-foreground">
-							Draft in <strong class="text-foreground">{phase.draft}</strong>. Pick games releasing
-							<strong class="text-foreground">{phase.window}</strong>.
+							Draft in <strong class="text-foreground">{draft}</strong>. Pick games releasing
+							<strong class="text-foreground">{window}</strong>.
 						</p>
 					</div>
 				{/each}
@@ -218,7 +276,25 @@
 		</div>
 		<div class="p-5">
 			<ol class="space-y-3 text-sm text-muted-foreground">
-				{#each [{ title: 'Create or join a league', desc: 'using an invite code from your friends.' }, { title: 'Enter the Winter Draft Room', desc: 'when all players are present. The commissioner starts the draft.' }, { title: 'Draft your picks', desc: 'in snake order — hit, bomb, seasonal games, and an alt backup.' }, { title: 'Watch your scores grow', desc: 'as your games release and perform on Steam throughout the year.' }, { title: 'Return for Summer and Fall drafts', desc: 'to expand your roster with new picks.' }] as step, i}
+				{#each [
+					{ title: 'Create or join a league', desc: 'using an invite code from your friends.' },
+					{
+						title: `Enter the ${PHASE_CONFIG[currentPhase].label} Draft Room`,
+						desc: 'when all players are present. The commissioner starts the draft.'
+					},
+					{
+						title: 'Draft your picks',
+						desc: 'in snake order — hit, bomb, seasonal games, and an alt backup.'
+					},
+					{
+						title: 'Watch your scores grow',
+						desc: 'as your games release and perform on Steam throughout the year.'
+					},
+					{
+						title: `Return for ${nextDraftsText}`,
+						desc: 'to expand your roster with new picks.'
+					}
+				] as step, i}
 					<li class="flex gap-3">
 						<span
 							class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary"
