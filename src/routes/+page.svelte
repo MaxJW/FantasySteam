@@ -2,7 +2,16 @@
 	import { goto } from '$app/navigation';
 	import { currentUser, signInWithGoogle } from '$lib/auth';
 	import { Button } from '$lib/components/ui/button';
-	import { LoaderCircle, Target, Bomb, Snowflake, TrendingUp, Users, Trophy } from '@lucide/svelte';
+	import {
+		LoaderCircle,
+		Target,
+		Bomb,
+		Snowflake,
+		TrendingUp,
+		Users,
+		Trophy,
+		CircleQuestionMark
+	} from '@lucide/svelte';
 
 	let loading = $state(true);
 
@@ -52,14 +61,22 @@
 				</p>
 			</div>
 
-			<div class="animate-fade-in-up" style="animation-delay: 0.15s">
+			<div class="flex flex-wrap justify-center gap-3 animate-fade-in-up" style="animation-delay: 0.15s">
 				<Button
 					size="lg"
 					onclick={handleSignIn}
 					disabled={loading}
-					class="glow-primary px-10 py-6 text-base font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+					class="glow-primary cursor-pointer px-10 py-6 text-base font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
 				>
 					{loading ? 'Signing in...' : 'Sign in with Google'}
+				</Button>
+				<Button
+					href="/how-to-play"
+					variant="outline"
+					size="lg"
+					class="glow-sm-primary gap-2 px-10 py-6 text-base font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+				>
+					<CircleQuestionMark class="size-4" /> How to play
 				</Button>
 			</div>
 		</div>
