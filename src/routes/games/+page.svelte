@@ -16,16 +16,14 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { GameDetailDialog } from '$lib/components/game-detail-dialog';
-	import {
-		Calendar,
-		LayoutGrid,
-		List,
-		ArrowUp,
-		ArrowDown,
-		ArrowUpDown,
-		Search,
-		Snowflake
-	} from '@lucide/svelte';
+	import Snowflake from '@lucide/svelte/icons/snowflake';
+	import Calendar from '@lucide/svelte/icons/calendar';
+	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+	import List from '@lucide/svelte/icons/list';
+	import ArrowUp from '@lucide/svelte/icons/arrow-up';
+	import ArrowDown from '@lucide/svelte/icons/arrow-down';
+	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
+	import Search from '@lucide/svelte/icons/search';
 
 	type ViewMode = 'table' | 'grid';
 
@@ -398,7 +396,7 @@
 			{#each games as game, i}
 				<button
 					type="button"
-					class="group relative aspect-[2/3] w-full animate-fade-in-up overflow-hidden rounded-lg border border-white/[0.06] bg-white/[0.03] text-left transition-all hover:border-white/[0.15] hover:shadow-lg hover:shadow-primary/[0.05] focus:ring-2 focus:ring-ring focus:outline-none"
+					class="group relative aspect-[2/3] w-full animate-fade-in-up cursor-pointer overflow-hidden rounded-lg border border-white/[0.06] bg-white/[0.03] text-left transition-all hover:border-white/[0.15] hover:shadow-lg hover:shadow-primary/[0.05] focus:ring-2 focus:ring-ring focus:outline-none"
 					style="animation-delay: {Math.min(i * 0.02, 0.3)}s"
 					onclick={() => openGameDetail(game.id)}
 				>

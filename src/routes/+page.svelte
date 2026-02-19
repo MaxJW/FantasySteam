@@ -2,16 +2,11 @@
 	import { goto } from '$app/navigation';
 	import { currentUser, signInWithGoogle } from '$lib/auth';
 	import { Button } from '$lib/components/ui/button';
-	import {
-		LoaderCircle,
-		Target,
-		Bomb,
-		Snowflake,
-		TrendingUp,
-		Users,
-		Trophy,
-		CircleQuestionMark
-	} from '@lucide/svelte';
+	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
+	import Snowflake from '@lucide/svelte/icons/snowflake';
+	import Users from '@lucide/svelte/icons/users';
+	import Trophy from '@lucide/svelte/icons/trophy';
+	import CircleQuestionMark from '@lucide/svelte/icons/circle-question-mark';
 
 	let loading = $state(true);
 

@@ -33,25 +33,22 @@
 
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { GameDetailDialog } from '$lib/components/game-detail-dialog';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import * as Avatar from '$lib/components/ui/avatar';
 
-	import {
-		LoaderCircle,
-		Search,
-		ArrowLeft,
-		Snowflake,
-		Target,
-		Bomb,
-		Shuffle,
-		CircleQuestionMark,
-		Play,
-		Zap
-	} from '@lucide/svelte';
+	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
+	import Search from '@lucide/svelte/icons/search';
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import Snowflake from '@lucide/svelte/icons/snowflake';
+	import Target from '@lucide/svelte/icons/target';
+	import Bomb from '@lucide/svelte/icons/bomb';
+	import Shuffle from '@lucide/svelte/icons/shuffle';
+	import CircleQuestionMark from '@lucide/svelte/icons/circle-question-mark';
+	import Play from '@lucide/svelte/icons/play';
+	import Zap from '@lucide/svelte/icons/zap';
 
 	const gameDetailCache = new Map<string, Game & { id: string }>();
 

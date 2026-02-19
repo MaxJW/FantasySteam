@@ -5,7 +5,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { ArrowLeft, Users } from '@lucide/svelte';
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import Users from '@lucide/svelte/icons/users';
 	import { getDefaultStudioName } from '$lib/utils';
 
 	const defaultStudio = () => getDefaultStudioName(getCurrentUser()?.displayName);

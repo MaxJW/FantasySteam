@@ -3,7 +3,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
-	import { ExternalLink } from '@lucide/svelte';
+	import ExternalLink from '@lucide/svelte/icons/external-link';
 
 	interface Props {
 		game: Game & { id: string };

@@ -2,21 +2,19 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
-	import {
-		Target,
-		Bomb,
-		Snowflake,
-		Shuffle,
-		Calendar,
-		Trophy,
-		Users,
-		Zap,
-		Star,
-		TrendingUp,
-		ArrowLeft,
-		Sun,
-		Leaf
-	} from '@lucide/svelte';
+	import Target from '@lucide/svelte/icons/target';
+	import Bomb from '@lucide/svelte/icons/bomb';
+	import Snowflake from '@lucide/svelte/icons/snowflake';
+	import Shuffle from '@lucide/svelte/icons/shuffle';
+	import Calendar from '@lucide/svelte/icons/calendar';
+	import Trophy from '@lucide/svelte/icons/trophy';
+	import Users from '@lucide/svelte/icons/users';
+	import Zap from '@lucide/svelte/icons/zap';
+	import Star from '@lucide/svelte/icons/star';
+	import TrendingUp from '@lucide/svelte/icons/trending-up';
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import Sun from '@lucide/svelte/icons/sun';
+	import Leaf from '@lucide/svelte/icons/leaf';
 	import { DRAFT_PHASES, getPhaseForDate, PHASE_CONFIG } from '$lib/db/types';
 
 	const now = new Date();
@@ -276,25 +274,7 @@
 		</div>
 		<div class="p-5">
 			<ol class="space-y-3 text-sm text-muted-foreground">
-				{#each [
-					{ title: 'Create or join a league', desc: 'using an invite code from your friends.' },
-					{
-						title: `Enter the ${PHASE_CONFIG[currentPhase].label} Draft Room`,
-						desc: 'when all players are present. The commissioner starts the draft.'
-					},
-					{
-						title: 'Draft your picks',
-						desc: 'in snake order — hit, bomb, seasonal games, and an alt backup.'
-					},
-					{
-						title: 'Watch your scores grow',
-						desc: 'as your games release and perform on Steam throughout the year.'
-					},
-					{
-						title: `Return for ${nextDraftsText}`,
-						desc: 'to expand your roster with new picks.'
-					}
-				] as step, i}
+				{#each [{ title: 'Create or join a league', desc: 'using an invite code from your friends.' }, { title: `Enter the ${PHASE_CONFIG[currentPhase].label} Draft Room`, desc: 'when all players are present. The commissioner starts the draft.' }, { title: 'Draft your picks', desc: 'in snake order — hit, bomb, seasonal games, and an alt backup.' }, { title: 'Watch your scores grow', desc: 'as your games release and perform on Steam throughout the year.' }, { title: `Return for ${nextDraftsText}`, desc: 'to expand your roster with new picks.' }] as step, i}
 					<li class="flex gap-3">
 						<span
 							class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary"

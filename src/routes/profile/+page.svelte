@@ -3,7 +3,9 @@
 	import { currentUser, signOut } from '$lib/auth';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
 	import { Button } from '$lib/components/ui/button';
-	import { LogOut, Mail, User } from '@lucide/svelte';
+	import LogOut from '@lucide/svelte/icons/log-out';
+	import Mail from '@lucide/svelte/icons/mail';
+	import User from '@lucide/svelte/icons/user';
 
 	let user = $state(get(currentUser) ?? null);
 	$effect(() => {

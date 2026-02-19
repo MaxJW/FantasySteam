@@ -5,7 +5,10 @@
 	import type { League } from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Plus, LogIn, Zap, Users, ChevronRight } from '@lucide/svelte';
+	import Plus from '@lucide/svelte/icons/plus';
+	import LogIn from '@lucide/svelte/icons/log-in';
+	import Zap from '@lucide/svelte/icons/zap';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 
 	let leagues = $state<(League & { id: string })[]>([]);
 	let loading = $state(true);

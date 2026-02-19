@@ -2,7 +2,7 @@
 	import type { Game } from '$lib/db';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import GameDetailContent from './GameDetailContent.svelte';
-	import { LoaderCircle } from '@lucide/svelte';
+	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 
 	interface Props {
 		embedded?: boolean;

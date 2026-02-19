@@ -5,7 +5,10 @@
 	import { currentUser } from '$lib/auth';
 	import favicon from '$lib/assets/favicon.svg';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
-	import { LayoutDashboard, Gamepad2, CircleQuestionMark, Zap } from '@lucide/svelte';
+	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
+	import Gamepad2 from '@lucide/svelte/icons/gamepad-2';
+	import CircleQuestionMark from '@lucide/svelte/icons/circle-question-mark';
+	import Zap from '@lucide/svelte/icons/zap';
 	import { goto } from '$app/navigation';
 
 	let { children } = $props();

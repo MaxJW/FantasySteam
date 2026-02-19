@@ -34,23 +34,21 @@
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { GameDetailDialog } from '$lib/components/game-detail-dialog';
-	import {
-		Settings,
-		Play,
-		Trash2,
-		ChevronDown,
-		ChevronUp,
-		Target,
-		Bomb,
-		Snowflake,
-		Shuffle,
-		CheckCircle,
-		Circle,
-		Loader,
-		TrendingUp,
-		ArrowLeft,
-		Trophy
-	} from '@lucide/svelte';
+	import Settings from '@lucide/svelte/icons/settings';
+	import Play from '@lucide/svelte/icons/play';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import ChevronUp from '@lucide/svelte/icons/chevron-up';
+	import Target from '@lucide/svelte/icons/target';
+	import Bomb from '@lucide/svelte/icons/bomb';
+	import Snowflake from '@lucide/svelte/icons/snowflake';
+	import Shuffle from '@lucide/svelte/icons/shuffle';
+	import CheckCircle from '@lucide/svelte/icons/check-circle';
+	import Circle from '@lucide/svelte/icons/circle';
+	import Loader from '@lucide/svelte/icons/loader';
+	import TrendingUp from '@lucide/svelte/icons/trending-up';
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import Trophy from '@lucide/svelte/icons/trophy';
 
 	let league = $state<Awaited<ReturnType<typeof getLeague>>>(null);
 	let teams = $state<(Team & { id: string })[]>([]);
@@ -238,7 +236,8 @@
 	const teamsSortedByScore = $derived.by(() => {
 		if (isPastSeasonView && seasonSnapshot) {
 			return [...teams].sort(
-				(a, b) => (seasonSnapshot!.finalRanks[a.id] ?? 999) - (seasonSnapshot!.finalRanks[b.id] ?? 999)
+				(a, b) =>
+					(seasonSnapshot!.finalRanks[a.id] ?? 999) - (seasonSnapshot!.finalRanks[b.id] ?? 999)
 			);
 		}
 		return [...teams].sort((a, b) => getTeamComputedScore(b) - getTeamComputedScore(a));
@@ -266,7 +265,10 @@
 			return {
 				dates: seasonSnapshot.graphData.dates,
 				series: seasonSnapshot.graphData.series.map((s) => ({
-					name: userProfiles[s.teamId]?.displayName || teams.find((t) => t.id === s.teamId)?.name || 'Unknown',
+					name:
+						userProfiles[s.teamId]?.displayName ||
+						teams.find((t) => t.id === s.teamId)?.name ||
+						'Unknown',
 					data: s.data
 				}))
 			};
@@ -465,18 +467,18 @@
 			<div
 				class="overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/10 via-accent/5 to-transparent"
 			>
-				<div class="flex flex-col items-center gap-4 px-6 py-10 text-center sm:flex-row sm:justify-center sm:gap-8 sm:text-left">
+				<div
+					class="flex flex-col items-center gap-4 px-6 py-10 text-center sm:flex-row sm:justify-center sm:gap-8 sm:text-left"
+				>
 					<div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-accent/20">
 						<Trophy class="h-10 w-10 text-accent" />
 					</div>
 					<div class="space-y-1">
-						<p class="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+						<p class="text-sm font-medium tracking-wider text-muted-foreground uppercase">
 							Season {league.season} Complete
 						</p>
 						<h2 class="text-2xl font-bold text-foreground md:text-3xl">
-							{winner
-								? userProfiles[winner.id]?.displayName || winner.name
-								: '—'} is the Champion
+							{winner ? userProfiles[winner.id]?.displayName || winner.name : '—'} is the Champion
 						</h2>
 						{#if winner}
 							<p class="text-lg font-semibold text-primary">
@@ -485,7 +487,9 @@
 						{/if}
 					</div>
 					{#if winner}
-						<Avatar.Root class="size-16 shrink-0 ring-2 ring-accent/40 ring-offset-2 ring-offset-background">
+						<Avatar.Root
+							class="size-16 shrink-0 ring-2 ring-accent/40 ring-offset-2 ring-offset-background"
+						>
 							<Avatar.Image
 								src={userProfiles[winner.id]?.avatarUrl ?? undefined}
 								alt={winner.name}
@@ -498,80 +502,80 @@
 				</div>
 			</div>
 		{:else}
-		<!-- Phase Timeline -->
-		<div class="grid gap-3 sm:grid-cols-3">
-			{#each DRAFT_PHASES as phase}
-				{@const cfg = PHASE_CONFIG[phase]}
-				{@const status = phaseStatuses[phase]}
-				{@const phaseLabel = getPhaseStatusLabel(phase)}
-				{@const StatusIcon = getPhaseStatusIcon(phase)}
-				{@const isCurrent = league.currentPhase === phase}
-				{@const canEnter = canEnterDraft(phase)}
-				<div
-					class="relative overflow-hidden rounded-xl border transition-all {isCurrent
-						? 'border-primary/40 bg-primary/[0.04]'
-						: status === 'completed'
-							? 'border-accent/20 bg-accent/[0.03]'
-							: phaseLabel === 'Skipped'
-								? 'border-white/[0.04] bg-white/[0.01] opacity-50'
-								: 'border-white/[0.06] bg-white/[0.02] opacity-60'}"
-				>
-					{#if isCurrent}
-						<div
-							class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary to-primary/60"
-						></div>
-					{:else if status === 'completed'}
-						<div class="absolute inset-x-0 top-0 h-0.5 bg-accent/40"></div>
-					{/if}
-					<div class="p-4">
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-2">
-								<StatusIcon
-									class="h-4 w-4 {status === 'completed'
-										? 'text-accent'
-										: isCurrent
-											? 'animate-spin text-primary'
-											: 'text-muted-foreground'}"
-								/>
-								<span class="font-semibold">{cfg.label}</span>
+			<!-- Phase Timeline -->
+			<div class="grid gap-3 sm:grid-cols-3">
+				{#each DRAFT_PHASES as phase}
+					{@const cfg = PHASE_CONFIG[phase]}
+					{@const status = phaseStatuses[phase]}
+					{@const phaseLabel = getPhaseStatusLabel(phase)}
+					{@const StatusIcon = getPhaseStatusIcon(phase)}
+					{@const isCurrent = league.currentPhase === phase}
+					{@const canEnter = canEnterDraft(phase)}
+					<div
+						class="relative overflow-hidden rounded-xl border transition-all {isCurrent
+							? 'border-primary/40 bg-primary/[0.04]'
+							: status === 'completed'
+								? 'border-accent/20 bg-accent/[0.03]'
+								: phaseLabel === 'Skipped'
+									? 'border-white/[0.04] bg-white/[0.01] opacity-50'
+									: 'border-white/[0.06] bg-white/[0.02] opacity-60'}"
+					>
+						{#if isCurrent}
+							<div
+								class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary to-primary/60"
+							></div>
+						{:else if status === 'completed'}
+							<div class="absolute inset-x-0 top-0 h-0.5 bg-accent/40"></div>
+						{/if}
+						<div class="p-4">
+							<div class="flex items-center justify-between">
+								<div class="flex items-center gap-2">
+									<StatusIcon
+										class="h-4 w-4 {status === 'completed'
+											? 'text-accent'
+											: isCurrent
+												? 'animate-spin text-primary'
+												: 'text-muted-foreground'}"
+									/>
+									<span class="font-semibold">{cfg.label}</span>
+								</div>
+								<span class="text-[10px] font-medium text-muted-foreground uppercase">
+									{getPhaseStatusLabel(phase)}
+								</span>
 							</div>
-							<span class="text-[10px] font-medium text-muted-foreground uppercase">
-								{getPhaseStatusLabel(phase)}
-							</span>
-						</div>
-						<p class="mt-1 text-xs text-muted-foreground">
-							{cfg.releaseStart(parseInt(league.season)).slice(5)} — {cfg
-								.releaseEnd(parseInt(league.season))
-								.slice(5)}
-						</p>
-						<div class="mt-3">
-							{#if canEnter}
-								<Button
-									href="/league/{league.id}/draft/{getDraftId(phase, league.season)}"
-									size="sm"
-									class="w-full gap-2 {isCurrent ? 'glow-sm-primary' : ''}"
-									variant={isCurrent ? 'default' : 'outline'}
-								>
-									<Play class="h-3.5 w-3.5" />
-									{status === 'active' || status === 'pending'
-										? 'Continue Draft'
-										: 'Enter Draft Room'}
-								</Button>
-							{:else if status === 'completed'}
-								<p class="text-center text-xs text-muted-foreground">Draft complete</p>
-							{:else if phaseLabel === 'Skipped'}
-								<p class="text-center text-xs text-muted-foreground">Skipped</p>
-							{:else}
-								<p class="text-center text-xs text-muted-foreground">
-									Complete {PHASE_CONFIG[DRAFT_PHASES[DRAFT_PHASES.indexOf(phase) - 1]]?.label ??
-										''} first
-								</p>
-							{/if}
+							<p class="mt-1 text-xs text-muted-foreground">
+								{cfg.releaseStart(parseInt(league.season)).slice(5)} — {cfg
+									.releaseEnd(parseInt(league.season))
+									.slice(5)}
+							</p>
+							<div class="mt-3">
+								{#if canEnter}
+									<Button
+										href="/league/{league.id}/draft/{getDraftId(phase, league.season)}"
+										size="sm"
+										class="w-full gap-2 {isCurrent ? 'glow-sm-primary' : ''}"
+										variant={isCurrent ? 'default' : 'outline'}
+									>
+										<Play class="h-3.5 w-3.5" />
+										{status === 'active' || status === 'pending'
+											? 'Continue Draft'
+											: 'Enter Draft Room'}
+									</Button>
+								{:else if status === 'completed'}
+									<p class="text-center text-xs text-muted-foreground">Draft complete</p>
+								{:else if phaseLabel === 'Skipped'}
+									<p class="text-center text-xs text-muted-foreground">Skipped</p>
+								{:else}
+									<p class="text-center text-xs text-muted-foreground">
+										Complete {PHASE_CONFIG[DRAFT_PHASES[DRAFT_PHASES.indexOf(phase) - 1]]?.label ??
+											''} first
+									</p>
+								{/if}
+							</div>
 						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
 		{/if}
 
 		<!-- Settings Panel -->
@@ -1100,75 +1104,77 @@
 						<ScrollArea class="h-[calc(100vh-14rem)]">
 							<div class="space-y-1 p-2">
 								{#if upcomingGames.length === 0}
-									<div class="py-10 text-center text-sm text-muted-foreground">No upcoming games</div>
+									<div class="py-10 text-center text-sm text-muted-foreground">
+										No upcoming games
+									</div>
 								{:else}
-								{#each upcomingGames as game}
-									{@const teamsWithGame = teams.filter((t) => {
-										const p = t.picks;
-										return (
-											p?.hitPick === game.id ||
-											p?.bombPick === game.id ||
-											p?.winterPicks?.includes(game.id) ||
-											p?.summerPicks?.includes(game.id) ||
-											p?.fallPicks?.includes(game.id) ||
-											p?.altPicks?.includes(game.id)
-										);
-									})}
-									{#if teamsWithGame.length > 0}
-										<button
-											type="button"
-											class="flex w-full items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors hover:bg-white/[0.04] focus:ring-2 focus:ring-ring focus:outline-none"
-											onclick={() => openGameDetail(game.id)}
-										>
-											{#if game.coverUrl}
-												<img
-													src={game.coverUrl}
-													alt={game.name}
-													class="h-14 w-10 shrink-0 rounded object-cover"
-												/>
-											{:else}
-												<div
-													class="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-white/[0.04] text-[8px] text-muted-foreground"
-												>
-													N/A
-												</div>
-											{/if}
-											<div class="min-w-0 flex-1">
-												<h3 class="line-clamp-1 text-sm font-medium">{game.name}</h3>
-												<div class="mt-0.5 flex items-center gap-1.5">
-													{#if game.releaseDate}
-														<span class="text-[10px] text-muted-foreground">
-															{new Date(game.releaseDate).toLocaleDateString('en-US', {
-																month: 'short',
-																day: 'numeric'
-															})}
-														</span>
-														{@const rel = getRelativeDate(game.releaseDate)}
-														{#if rel && rel !== 'Released'}
-															<span
-																class="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary"
-																>{rel}</span
-															>
+									{#each upcomingGames as game}
+										{@const teamsWithGame = teams.filter((t) => {
+											const p = t.picks;
+											return (
+												p?.hitPick === game.id ||
+												p?.bombPick === game.id ||
+												p?.winterPicks?.includes(game.id) ||
+												p?.summerPicks?.includes(game.id) ||
+												p?.fallPicks?.includes(game.id) ||
+												p?.altPicks?.includes(game.id)
+											);
+										})}
+										{#if teamsWithGame.length > 0}
+											<button
+												type="button"
+												class="flex w-full items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors hover:bg-white/[0.04] focus:ring-2 focus:ring-ring focus:outline-none"
+												onclick={() => openGameDetail(game.id)}
+											>
+												{#if game.coverUrl}
+													<img
+														src={game.coverUrl}
+														alt={game.name}
+														class="h-14 w-10 shrink-0 rounded object-cover"
+													/>
+												{:else}
+													<div
+														class="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-white/[0.04] text-[8px] text-muted-foreground"
+													>
+														N/A
+													</div>
+												{/if}
+												<div class="min-w-0 flex-1">
+													<h3 class="line-clamp-1 text-sm font-medium">{game.name}</h3>
+													<div class="mt-0.5 flex items-center gap-1.5">
+														{#if game.releaseDate}
+															<span class="text-[10px] text-muted-foreground">
+																{new Date(game.releaseDate).toLocaleDateString('en-US', {
+																	month: 'short',
+																	day: 'numeric'
+																})}
+															</span>
+															{@const rel = getRelativeDate(game.releaseDate)}
+															{#if rel && rel !== 'Released'}
+																<span
+																	class="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary"
+																	>{rel}</span
+																>
+															{/if}
 														{/if}
-													{/if}
+													</div>
+													<div class="mt-1 flex flex-wrap gap-1">
+														{#each teamsWithGame as t}
+															<span
+																class="rounded bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-muted-foreground"
+															>
+																{userProfiles[t.id]?.displayName || t.name}
+															</span>
+														{/each}
+													</div>
 												</div>
-												<div class="mt-1 flex flex-wrap gap-1">
-													{#each teamsWithGame as t}
-														<span
-															class="rounded bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-muted-foreground"
-														>
-															{userProfiles[t.id]?.displayName || t.name}
-														</span>
-													{/each}
-												</div>
-											</div>
-										</button>
-									{/if}
-								{/each}
-							{/if}
-						</div>
-					</ScrollArea>
-				</div>
+											</button>
+										{/if}
+									{/each}
+								{/if}
+							</div>
+						</ScrollArea>
+					</div>
 				{/if}
 			</div>
 		</div>
