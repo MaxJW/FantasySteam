@@ -39,7 +39,8 @@
 		const idx = phases.indexOf(league.currentPhase);
 		if (league.status === 'completed') return 3;
 		if (league.status === 'draft') return 0;
-		return idx;
+		// Active in phase X means drafts for winter..X are complete, so idx+1 drafts done
+		return idx + 1;
 	}
 </script>
 
