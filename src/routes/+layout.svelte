@@ -83,7 +83,7 @@
 						>
 							<Zap class="h-4 w-4 text-primary" />
 						</div>
-						<span class="hidden sm:inline">
+						<span class="inline">
 							<span class="text-foreground">Fantasy</span><span class="text-gradient-primary"
 								>Steam</span
 							>
