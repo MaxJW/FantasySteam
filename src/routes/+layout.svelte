@@ -5,8 +5,6 @@
 	import { get } from 'svelte/store';
 	import { currentUser } from '$lib/auth';
 	import { refreshScores } from '$lib/db';
-	import { pwaInfo } from 'virtual:pwa-info';
-	import { pwaAssetsHead } from 'virtual:pwa-assets/head';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import Gamepad2 from '@lucide/svelte/icons/gamepad-2';
@@ -58,16 +56,6 @@
 		return path === href || (href !== '/' && path.startsWith(href));
 	}
 </script>
-
-<svelte:head>
-	<meta name="theme-color" content={pwaAssetsHead?.themeColor?.content ?? '#171d2b'} />
-	{#each pwaAssetsHead?.links ?? [] as link}
-		<link rel={link.rel} href={link.href} sizes={link.sizes} type={link.type} />
-	{/each}
-	{#if pwaInfo?.webManifest?.linkTag}
-		{@html pwaInfo.webManifest.linkTag}
-	{/if}
-</svelte:head>
 
 <div class="flex min-h-screen flex-col">
 	<header class="sticky top-0 z-40 w-full">
@@ -148,10 +136,6 @@
 	<main class="container mx-auto flex-1 px-4 py-6 pb-24 md:py-8 md:pb-8">
 		{@render children()}
 	</main>
-
-	{#await import('$lib/ReloadPrompt.svelte') then { default: ReloadPrompt }}
-		<ReloadPrompt />
-	{/await}
 
 	{#if user}
 		<nav class="fixed right-0 bottom-0 left-0 z-40 md:hidden" aria-label="Main navigation">
