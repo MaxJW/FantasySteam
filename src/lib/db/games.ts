@@ -7,22 +7,66 @@ interface GamesAsset {
 	games: (Game & { id: string })[];
 }
 
-const gamesData: GamesAsset = ((await import('$lib/assets/games.json')) as { default: GamesAsset })
-	.default;
-const gamesById = new Map<string, Game & { id: string }>(gamesData.games.map((g) => [g.id, g]));
+let gamesDataCache: GamesAsset | null = null;
+let gamesByIdCache: Map<string, Game & { id: string }> | null = null;
+
+async function ensureGamesLoaded(): Promise<{
+	gamesData: GamesAsset;
+	gamesById: Map<string, Game & { id: string }>;
+}> {
+	if (gamesDataCache && gamesByIdCache) {
+		return { gamesData: gamesDataCache, gamesById: gamesByIdCache };
+	}
+	try {
+		const gamesData = ((await import('$lib/assets/games.json')) as { default: GamesAsset }).default;
+		gamesDataCache = gamesData;
+		gamesByIdCache = new Map(gamesData.games.map((g) => [g.id, g]));
+		return { gamesData: gamesDataCache, gamesById: gamesByIdCache };
+	} catch (err) {
+		gamesDataCache = null;
+		gamesByIdCache = null;
+		const empty: GamesAsset = { games: [] };
+		return { gamesData: empty, gamesById: new Map() };
+	}
+}
+
+/** Invalidate the games cache so the next call re-loads from disk. Use for retry after load failure. */
+export function refreshGames(): void {
+	gamesDataCache = null;
+	gamesByIdCache = null;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Scores from Firestore (cached)                                     */
 /* ------------------------------------------------------------------ */
 
+const SCORES_MAX_RETRIES = 3;
+const SCORES_RETRY_DELAY_MS = 500;
+
 let scoresPromise: Promise<Record<string, number>> | null = null;
 
-/** Fetches the scores summary from Firestore (meta/scores). Cached after first call. */
+async function fetchScoresWithRetry(attempt = 0): Promise<Record<string, number>> {
+	try {
+		const snap = await getDoc(doc(db, 'meta', 'scores'));
+		return snap.exists() ? ((snap.data().scores as Record<string, number>) ?? {}) : {};
+	} catch (err) {
+		if (attempt < SCORES_MAX_RETRIES - 1) {
+			const delay = SCORES_RETRY_DELAY_MS * Math.pow(2, attempt);
+			await new Promise((r) => setTimeout(r, delay));
+			return fetchScoresWithRetry(attempt + 1);
+		}
+		// Return empty scores so app can still show games without scores
+		return {};
+	}
+}
+
+/** Fetches the scores summary from Firestore (meta/scores). Cached after first successful call. */
 export function getScoresMap(): Promise<Record<string, number>> {
 	if (!scoresPromise) {
-		scoresPromise = getDoc(doc(db, 'meta', 'scores')).then((snap) =>
-			snap.exists() ? ((snap.data().scores as Record<string, number>) ?? {}) : {}
-		);
+		scoresPromise = fetchScoresWithRetry().catch((err) => {
+			scoresPromise = null; // Don't cache rejections - allow retry on next call
+			return {};
+		});
 	}
 	return scoresPromise;
 }
@@ -37,6 +81,7 @@ export function refreshScores(): void {
 /* ------------------------------------------------------------------ */
 
 export async function getGame(gameId: string): Promise<(Game & { id: string }) | null> {
+	const { gamesById } = await ensureGamesLoaded();
 	const g = gamesById.get(gameId) ?? null;
 	if (!g) return null;
 	const scores = await getScoresMap();
@@ -44,7 +89,8 @@ export async function getGame(gameId: string): Promise<(Game & { id: string }) |
 }
 
 /** Returns available years derived from games.json (unique releaseDate years). */
-export function getGameListYears(): Promise<number[]> {
+export async function getGameListYears(): Promise<number[]> {
+	const { gamesData } = await ensureGamesLoaded();
 	const years = [
 		...new Set(
 			gamesData.games
@@ -53,10 +99,11 @@ export function getGameListYears(): Promise<number[]> {
 				.map((y) => parseInt(y, 10))
 		)
 	].sort((a, b) => b - a);
-	return Promise.resolve(years);
+	return years;
 }
 
 async function getFullGameListForYear(year: number): Promise<GameListEntry[]> {
+	const { gamesData } = await ensureGamesLoaded();
 	const yearStr = String(year);
 	const scores = await getScoresMap();
 	return gamesData.games
@@ -133,9 +180,10 @@ export async function getGameListPage(
 	return { games, total };
 }
 
-export function isGameHidden(gameId: string): Promise<boolean> {
+export async function isGameHidden(gameId: string): Promise<boolean> {
+	const { gamesById } = await ensureGamesLoaded();
 	const g = gamesById.get(gameId);
-	return Promise.resolve(g?.isHidden === true);
+	return g?.isHidden === true;
 }
 
 export async function getDraftableGames(opts?: {
@@ -145,6 +193,7 @@ export async function getDraftableGames(opts?: {
 	releaseTo?: string;
 	limitCount?: number;
 }): Promise<(Game & { id: string })[]> {
+	const { gamesData } = await ensureGamesLoaded();
 	let list = gamesData.games.filter((g) => !g.isHidden);
 
 	if (opts?.releaseFrom) {
@@ -189,12 +238,11 @@ export async function getGameHistory(
 }
 
 /** Get upcoming games (releaseDate >= today) */
-export function getUpcomingGames(): Promise<(Game & { id: string })[]> {
+export async function getUpcomingGames(): Promise<(Game & { id: string })[]> {
+	const { gamesData } = await ensureGamesLoaded();
 	const today = new Date().toISOString().split('T')[0];
-	return Promise.resolve(
-		gamesData.games
-			.filter((g) => !g.isHidden && g.releaseDate && g.releaseDate >= today)
-			.sort((a, b) => (a.releaseDate ?? '').localeCompare(b.releaseDate ?? ''))
-			.map((g) => ({ ...g, id: g.id }))
-	);
+	return gamesData.games
+		.filter((g) => !g.isHidden && g.releaseDate && g.releaseDate >= today)
+		.sort((a, b) => (a.releaseDate ?? '').localeCompare(b.releaseDate ?? ''))
+		.map((g) => ({ ...g, id: g.id }));
 }

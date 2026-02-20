@@ -86,6 +86,7 @@
 	let memberDisplayNames = $state<Map<string, string>>(new Map());
 	let gameListScrollTop = $state(0);
 	let gameListViewportRef = $state<HTMLDivElement | null>(null);
+	let loadError = $state<string | null>(null);
 
 	const me = $derived(getCurrentUser());
 	const isCommissioner = $derived(!!(me && league && league.commissionerId === me.uid));
@@ -137,7 +138,10 @@
 
 	$effect(() => {
 		if (!leagueId) return;
-		getLeague(leagueId).then((l) => (league = l));
+		loadError = null;
+		getLeague(leagueId)
+			.then((l) => (league = l))
+			.catch((e) => (loadError = e instanceof Error ? e.message : 'Load failed'));
 	});
 
 	$effect(() => {
@@ -149,7 +153,12 @@
 	$effect(() => {
 		if (!leagueId || !draftId) return;
 		unsubDraftFn?.();
-		const unsub = subscribeDraft(leagueId, draftId, (d) => (draft = d));
+		const unsub = subscribeDraft(
+			leagueId,
+			draftId,
+			(d) => (draft = d),
+			(err) => (loadError = err.message || 'Connection error')
+		);
 		unsubDraftFn = unsub;
 		return () => unsub();
 	});
@@ -199,11 +208,28 @@
 
 	async function ensureDraft() {
 		if (!leagueId || !draftId || !league) return;
-		const d = await getDraft(leagueId, draftId);
-		if (d) {
-			draft = d;
-		} else if (isCommissioner) {
-			await createDraft(leagueId, draftId, phase, league.members);
+		try {
+			const d = await getDraft(leagueId, draftId);
+			if (d) {
+				draft = d;
+			} else if (isCommissioner) {
+				await createDraft(leagueId, draftId, phase, league.members);
+			}
+			loadError = null;
+		} catch (e) {
+			loadError = e instanceof Error ? e.message : 'Load failed';
+		}
+	}
+
+	async function retryDraftLoad() {
+		loadError = null;
+		if (!leagueId) return;
+		try {
+			const l = await getLeague(leagueId);
+			league = l;
+			if (l && draftId) await ensureDraft();
+		} catch (e) {
+			loadError = e instanceof Error ? e.message : 'Load failed';
 		}
 	}
 
@@ -473,7 +499,12 @@
 </svelte:head>
 
 <div class="flex h-[calc(100vh-7rem)] flex-col gap-4 md:h-[calc(100vh-8rem)]">
-	{#if !league || !draft}
+	{#if loadError}
+		<div class="flex h-full flex-col items-center justify-center gap-4">
+			<p class="text-sm text-destructive">{loadError}</p>
+			<Button variant="outline" onclick={retryDraftLoad}>Retry</Button>
+		</div>
+	{:else if !league || !draft}
 		<div class="flex h-full flex-col items-center justify-center gap-3">
 			<LoaderCircle class="h-8 w-8 animate-spin text-primary" />
 			<p class="text-sm text-muted-foreground">Loading draft room...</p>

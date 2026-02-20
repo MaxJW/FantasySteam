@@ -64,15 +64,22 @@ export async function getDraft(
 export function subscribeDraft(
 	leagueId: string,
 	draftId: string,
-	onUpdate: (draft: (Draft & { id: string }) | null) => void
+	onUpdate: (draft: (Draft & { id: string }) | null) => void,
+	onError?: (err: Error) => void
 ): () => void {
-	return onSnapshot(draftRef(leagueId, draftId), (snap) => {
-		if (!snap.exists()) {
-			onUpdate(null);
-			return;
+	return onSnapshot(
+		draftRef(leagueId, draftId),
+		(snap) => {
+			if (!snap.exists()) {
+				onUpdate(null);
+				return;
+			}
+			onUpdate({ id: snap.id, ...snap.data() } as Draft & { id: string });
+		},
+		(err) => {
+			onError?.(err);
 		}
-		onUpdate({ id: snap.id, ...snap.data() } as Draft & { id: string });
-	});
+	);
 }
 
 // -----------------------------------------------------------------------

@@ -76,6 +76,21 @@
 		fall: null
 	});
 	let seasonSnapshot = $state<SeasonSnapshot | null>(null);
+	let loadError = $state<string | null>(null);
+
+	async function retryLeagueLoad() {
+		if (!leagueId) return;
+		loadError = null;
+		loading = true;
+		try {
+			const l = await getLeague(leagueId);
+			league = l;
+		} catch (e) {
+			loadError = e instanceof Error ? e.message : 'Load failed';
+		} finally {
+			loading = false;
+		}
+	}
 
 	async function openGameDetail(gameId: string) {
 		selectedGameId = gameId;
@@ -112,10 +127,16 @@
 	$effect(() => {
 		const id = leagueId;
 		if (!id) return;
-		getLeague(id).then((l) => {
-			league = l;
-			loading = false;
-		});
+		loadError = null;
+		getLeague(id)
+			.then((l) => {
+				league = l;
+				loading = false;
+			})
+			.catch((e) => {
+				loadError = e instanceof Error ? e.message : 'Load failed';
+				loading = false;
+			});
 	});
 
 	$effect(() => {
@@ -414,6 +435,17 @@
 				{#each Array(3) as _}
 					<div class="h-32 animate-pulse rounded-xl bg-white/[0.04]"></div>
 				{/each}
+			</div>
+		</div>
+	{:else if loadError}
+		<div class="flex flex-col items-center gap-4 py-16 text-center">
+			<h2 class="text-xl font-bold">Connection error</h2>
+			<p class="text-sm text-muted-foreground">{loadError}</p>
+			<div class="flex gap-3">
+				<Button onclick={retryLeagueLoad} variant="outline">Retry</Button>
+				<Button variant="ghost" href="/dashboard" class="gap-2">
+					<ArrowLeft class="h-4 w-4" /> Back to dashboard
+				</Button>
 			</div>
 		</div>
 	{:else if !league}

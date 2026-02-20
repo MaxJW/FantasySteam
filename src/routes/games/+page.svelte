@@ -7,6 +7,7 @@
 		getGame,
 		getGameListPage,
 		getGameListYears,
+		refreshGames,
 		DRAFT_PHASES,
 		PHASE_CONFIG,
 		getPhaseReleaseDateRange
@@ -62,6 +63,25 @@
 	let detailLoading = $state(false);
 
 	let loadMoreSentinel = $state<HTMLDivElement | undefined>(undefined);
+	let loadError = $state<string | null>(null);
+
+	async function retryLoad() {
+		loadError = null;
+		refreshGames();
+		loadingYears = true;
+		loadingGames = true;
+		try {
+			const y = await getGameListYears();
+			years = y.map(String);
+			if (!selectedYear && years.length > 0) selectedYear = years[0];
+			if (selectedYear) await loadFirstPage();
+		} catch (e) {
+			loadError = e instanceof Error ? e.message : 'Load failed';
+		} finally {
+			loadingYears = false;
+			loadingGames = false;
+		}
+	}
 
 	async function openGameDetail(gameId: string) {
 		selectedGameId = gameId;
@@ -83,11 +103,17 @@
 	}
 
 	$effect(() => {
-		getGameListYears().then((y) => {
-			years = y.map(String);
-			loadingYears = false;
-			if (!selectedYear && years.length > 0) selectedYear = years[0];
-		});
+		loadError = null;
+		getGameListYears()
+			.then((y) => {
+				years = y.map(String);
+				loadingYears = false;
+				if (!selectedYear && years.length > 0) selectedYear = years[0];
+			})
+			.catch((e) => {
+				loadError = e instanceof Error ? e.message : 'Load failed';
+				loadingYears = false;
+			});
 	});
 
 	async function loadFirstPage() {
@@ -111,6 +137,9 @@
 			const { games: page, total } = await getGameListPage(year, PAGE_SIZE, 0, opts);
 			games = page;
 			totalCount = total;
+			loadError = null;
+		} catch (e) {
+			loadError = e instanceof Error ? e.message : 'Load failed';
 		} finally {
 			loadingGames = false;
 		}
@@ -313,6 +342,11 @@
 					style="animation-delay: {i * 0.03}s"
 				></div>
 			{/each}
+		</div>
+	{:else if loadError}
+		<div class="glass flex flex-col items-center justify-center gap-4 rounded-xl py-12 text-center">
+			<p class="text-sm text-destructive">{loadError}</p>
+			<Button onclick={retryLoad} variant="outline">Retry</Button>
 		</div>
 	{:else if years.length === 0}
 		<div class="glass rounded-xl py-10 text-center text-sm text-muted-foreground">

@@ -1,8 +1,10 @@
 <script lang="ts">
 	import './layout.css';
+	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
 	import { currentUser } from '$lib/auth';
+	import { refreshScores } from '$lib/db';
 	import { pwaInfo } from 'virtual:pwa-info';
 	import { pwaAssetsHead } from 'virtual:pwa-assets/head';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
@@ -13,6 +15,16 @@
 	import { goto } from '$app/navigation';
 
 	let { children } = $props();
+
+	onMount(() => {
+		const handleVisibility = () => {
+			if (document.visibilityState === 'visible') {
+				refreshScores();
+			}
+		};
+		document.addEventListener('visibilitychange', handleVisibility);
+		return () => document.removeEventListener('visibilitychange', handleVisibility);
+	});
 	let user = $state(get(currentUser));
 	let path = $state(get(page).url.pathname);
 	currentUser.subscribe((u) => (user = u));
