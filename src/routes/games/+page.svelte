@@ -196,39 +196,43 @@
 
 		<!-- Filter bar -->
 		<div class="sticky top-14 z-20 -mx-4 px-4 md:top-16">
-			<div class="glass flex flex-wrap items-center gap-3 rounded-xl p-3">
-				<div class="flex items-center gap-2">
-					<Calendar class="h-4 w-4 text-muted-foreground" />
-					<Select.Root bind:value={selectedYear} type="single">
-						<Select.Trigger class="w-[120px] border-white/[0.08] bg-white/[0.04]">
-							{selectedYear || 'Year'}
-						</Select.Trigger>
-						<Select.Content>
-							{#each years as y}
-								<Select.Item value={String(y)} label={String(y)}>{y}</Select.Item>
-							{/each}
-						</Select.Content>
-					</Select.Root>
+			<div
+				class="glass flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 sm:p-3"
+			>
+				<div class="flex flex-wrap items-center gap-3">
+					<div class="flex items-center gap-2">
+						<Calendar class="h-4 w-4 text-muted-foreground" />
+						<Select.Root bind:value={selectedYear} type="single">
+							<Select.Trigger class="w-[120px] border-white/[0.08] bg-white/[0.04]">
+								{selectedYear || 'Year'}
+							</Select.Trigger>
+							<Select.Content>
+								{#each years as y}
+									<Select.Item value={String(y)} label={String(y)}>{y}</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
+					</div>
+
+					<div class="flex items-center gap-2">
+						<Snowflake class="h-4 w-4 text-muted-foreground" />
+						<Select.Root bind:value={selectedSeason} type="single">
+							<Select.Trigger class="w-[130px] border-white/[0.08] bg-white/[0.04]">
+								{selectedSeason ? PHASE_CONFIG[selectedSeason].label : 'All seasons'}
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Item value="" label="All seasons">All seasons</Select.Item>
+								{#each DRAFT_PHASES as phase}
+									<Select.Item value={phase} label={PHASE_CONFIG[phase].label}>
+										{PHASE_CONFIG[phase].label}
+									</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
+					</div>
 				</div>
 
-				<div class="flex items-center gap-2">
-					<Snowflake class="h-4 w-4 text-muted-foreground" />
-					<Select.Root bind:value={selectedSeason} type="single">
-						<Select.Trigger class="w-[130px] border-white/[0.08] bg-white/[0.04]">
-							{selectedSeason ? PHASE_CONFIG[selectedSeason].label : 'All seasons'}
-						</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="" label="All seasons">All seasons</Select.Item>
-							{#each DRAFT_PHASES as phase}
-								<Select.Item value={phase} label={PHASE_CONFIG[phase].label}>
-									{PHASE_CONFIG[phase].label}
-								</Select.Item>
-							{/each}
-						</Select.Content>
-					</Select.Root>
-				</div>
-
-				<div class="relative flex-1 sm:max-w-xs">
+				<div class="relative w-full min-w-0 sm:max-w-xs sm:flex-1">
 					<Search class="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
 					<Input
 						placeholder="Search games..."
@@ -237,53 +241,57 @@
 					/>
 				</div>
 
-				{#if viewMode === 'grid'}
-					<div class="hidden items-center gap-2 sm:flex">
-						<Select.Root bind:value={sortOption} type="single">
-							<Select.Trigger class="w-[170px] border-white/[0.08] bg-white/[0.04]">
-								{SORT_OPTIONS.find((o) => o.value === sortOption)?.label ?? sortOption}
-							</Select.Trigger>
-							<Select.Content>
-								{#each SORT_OPTIONS as opt}
-									<Select.Item value={opt.value} label={opt.label}>{opt.label}</Select.Item>
-								{/each}
-							</Select.Content>
-						</Select.Root>
+				<div class="flex items-center gap-3 sm:ml-auto">
+					{#if viewMode === 'grid'}
+						<div class="hidden items-center gap-2 sm:flex">
+							<Select.Root bind:value={sortOption} type="single">
+								<Select.Trigger class="w-[170px] border-white/[0.08] bg-white/[0.04]">
+									{SORT_OPTIONS.find((o) => o.value === sortOption)?.label ?? sortOption}
+								</Select.Trigger>
+								<Select.Content>
+									{#each SORT_OPTIONS as opt}
+										<Select.Item value={opt.value} label={opt.label}>{opt.label}</Select.Item>
+									{/each}
+								</Select.Content>
+							</Select.Root>
+						</div>
+					{/if}
+
+					<div
+						class="flex items-center gap-0.5 rounded-lg border border-white/[0.06] bg-white/[0.02] p-0.5"
+					>
+						<Button
+							variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+							size="icon"
+							class="h-7 w-7"
+							onclick={() => (viewMode = 'table')}
+							aria-label="Table view"
+						>
+							<List class="h-3.5 w-3.5" />
+						</Button>
+						<Button
+							variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+							size="icon"
+							class="h-7 w-7"
+							onclick={() => (viewMode = 'grid')}
+							aria-label="Grid view"
+						>
+							<LayoutGrid class="h-3.5 w-3.5" />
+						</Button>
 					</div>
-				{/if}
 
-				<div
-					class="ml-auto flex items-center gap-0.5 rounded-lg border border-white/[0.06] bg-white/[0.02] p-0.5"
-				>
-					<Button
-						variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-						size="icon"
-						class="h-7 w-7"
-						onclick={() => (viewMode = 'table')}
-						aria-label="Table view"
-					>
-						<List class="h-3.5 w-3.5" />
-					</Button>
-					<Button
-						variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-						size="icon"
-						class="h-7 w-7"
-						onclick={() => (viewMode = 'grid')}
-						aria-label="Grid view"
-					>
-						<LayoutGrid class="h-3.5 w-3.5" />
-					</Button>
+					{#if totalCount > 0 && !loadingGames}
+						<span class="text-[10px] text-muted-foreground">{totalCount} games</span>
+					{/if}
 				</div>
-
-				{#if totalCount > 0 && !loadingGames}
-					<span class="text-[10px] text-muted-foreground">{totalCount} games</span>
-				{/if}
 			</div>
 		</div>
 	</div>
 
 	{#if loadingYears || loadingGames}
-		<div class="grid gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+		<div
+			class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+		>
 			{#each Array(12) as _, i}
 				<div
 					class="aspect-[2/3] animate-fade-in-up rounded-lg bg-white/[0.04]"
@@ -392,7 +400,9 @@
 			</div>
 		{/if}
 	{:else}
-		<div class="grid gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+		<div
+			class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+		>
 			{#each games as game, i}
 				<button
 					type="button"

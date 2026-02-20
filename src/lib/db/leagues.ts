@@ -423,7 +423,7 @@ export async function computeAndSaveSeasonSnapshot(
 	for (const team of teams) {
 		const scores = history.get(team.id);
 		const lastDate = sortedDates[sortedDates.length - 1];
-		finalScores[team.id] = lastDate && scores ? scores.get(lastDate) ?? 0 : 0;
+		finalScores[team.id] = lastDate && scores ? (scores.get(lastDate) ?? 0) : 0;
 	}
 
 	const sortedByScore = [...teams].sort(

@@ -7,6 +7,9 @@ const config = {
 		alias: {
 			$lib: 'src/lib',
 			'@/*': 'src/lib/*'
+		},
+		serviceWorker: {
+			register: false
 		}
 	}
 };
