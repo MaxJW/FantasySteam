@@ -102,21 +102,39 @@ export async function getGameListYears(): Promise<number[]> {
 	return years;
 }
 
-async function getFullGameListForYear(year: number): Promise<GameListEntry[]> {
+/** Returns unique genres for games in a given year, sorted alphabetically. */
+export async function getGameListGenres(year: number): Promise<string[]> {
+	const { gamesData } = await ensureGamesLoaded();
+	const yearStr = String(year);
+	const genres = new Set<string>();
+	for (const g of gamesData.games) {
+		if (g.releaseDate?.startsWith(yearStr)) {
+			for (const genre of g.genres ?? []) genres.add(genre);
+		}
+	}
+	return [...genres].sort();
+}
+
+async function getFullGameListForYear(
+	year: number,
+	filterOpts?: { genres?: string[] }
+): Promise<GameListEntry[]> {
 	const { gamesData } = await ensureGamesLoaded();
 	const yearStr = String(year);
 	const scores = await getScoresMap();
-	return gamesData.games
-		.filter((g) => g.releaseDate?.startsWith(yearStr))
-		.map(
-			(g): GameListEntry => ({
-				id: g.id,
-				name: g.name,
-				releaseDate: g.releaseDate ?? null,
-				coverUrl: g.coverUrl ?? null,
-				score: scores[g.id] ?? null
-			})
-		);
+	let list = gamesData.games.filter((g) => g.releaseDate?.startsWith(yearStr));
+	if (filterOpts?.genres?.length) {
+		list = list.filter((g) => filterOpts.genres!.some((genre) => (g.genres ?? []).includes(genre)));
+	}
+	return list.map(
+		(g): GameListEntry => ({
+			id: g.id,
+			name: g.name,
+			releaseDate: g.releaseDate ?? null,
+			coverUrl: g.coverUrl ?? null,
+			score: scores[g.id] ?? null
+		})
+	);
 }
 
 /** Games for a given year. Entries include coverUrl and Firestore score when available. */
@@ -127,7 +145,7 @@ export function getGameList(year: number): Promise<GameListEntry[]> {
 export type GameListSortBy = 'id' | 'name' | 'date' | 'score';
 export type GameListOrder = 'asc' | 'desc';
 
-/** Paginated games for a year. Optional search, sort, releaseFrom/releaseTo (YYYY-MM-DD), hideReleased. */
+/** Paginated games for a year. Optional search, sort, releaseFrom/releaseTo (YYYY-MM-DD), hideReleased, genres. */
 export async function getGameListPage(
 	year: number,
 	limit: number,
@@ -139,9 +157,11 @@ export async function getGameListPage(
 		releaseFrom?: string;
 		releaseTo?: string;
 		hideReleased?: boolean;
+		genres?: string[];
 	}
 ): Promise<{ games: GameListEntry[]; total: number }> {
-	let full = await getFullGameListForYear(year);
+	const filterOpts = opts?.genres?.length ? { genres: opts.genres } : undefined;
+	let full = await getFullGameListForYear(year, filterOpts);
 	if (opts?.releaseFrom) {
 		full = full.filter((g) => (g.releaseDate ?? '') >= opts.releaseFrom!);
 	}

@@ -13,6 +13,8 @@
  *   node scripts/update-scores.js              # full scoring run
  *   node scripts/update-scores.js --ccu-only   # off-peak CCU snapshot only
  *   node scripts/update-scores.js --dry-run    # log only, no Firestore writes
+ *   node scripts/update-scores.js --concurrency 8   # parallel workers (default 5)
+ *   node scripts/update-scores.js --delay 300      # ms between starting new requests (default 400)
  */
 
 import admin from 'firebase-admin';
@@ -27,10 +29,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 /* ------------------------------------------------------------------ */
 
 const SALES_PER_REVIEW = 40;
-const DELAY_MS = 1500;
 const DRY_RUN = process.argv.includes('--dry-run');
 const CCU_ONLY = process.argv.includes('--ccu-only');
 const GAMES_JSON_PATH = join(__dirname, '..', 'src/lib/assets/games.json');
+
+const concurrencyIdx = process.argv.indexOf('--concurrency');
+const CONCURRENCY = concurrencyIdx >= 0 ? parseInt(process.argv[concurrencyIdx + 1], 10) : 5;
+
+const delayIdx = process.argv.indexOf('--delay');
+const DELAY_MS = delayIdx >= 0 ? parseInt(process.argv[delayIdx + 1], 10) : 400;
+
+const BATCH_COMMIT_RETRIES = 3;
+const BATCH_COMMIT_INITIAL_BACKOFF_MS = 1000;
 
 const HEADERS = {
 	'User-Agent': 'SteamFantasyLeagueBot/1.0'
@@ -128,16 +138,36 @@ function computeBombThreshold(dailyPointsByGameId) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Steam API                                                          */
+/*  Steam API (with 429 retry)                                         */
 /* ------------------------------------------------------------------ */
+
+async function fetchWithRetry(url, options = {}) {
+	let lastErr;
+	for (let attempt = 0; attempt < 3; attempt++) {
+		const res = await fetch(url, { ...options, headers: { ...HEADERS, ...options.headers } });
+		if (res.status === 429) {
+			const retryAfter = parseInt(res.headers.get('Retry-After'), 10) || 60;
+			const backoff = Math.min(retryAfter * 1000, 120000);
+			if (attempt < 2) {
+				console.error(`  Steam 429 rate limit, backing off ${backoff / 1000}s...`);
+				await sleep(backoff);
+			} else {
+				throw new Error(`Steam 429 rate limit (exhausted retries)`);
+			}
+		} else {
+			return res;
+		}
+	}
+	throw lastErr;
+}
 
 async function fetchSteamData(appId) {
 	const reviewUrl = `https://store.steampowered.com/appreviews/${appId}?json=1&num_per_page=0&purchase_type=all&language=all`;
 	const ccuUrl = `https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=${appId}`;
 
 	const [reviewRes, ccuRes] = await Promise.all([
-		fetch(reviewUrl, { headers: HEADERS }),
-		fetch(ccuUrl, { headers: HEADERS })
+		fetchWithRetry(reviewUrl),
+		fetchWithRetry(ccuUrl)
 	]);
 
 	if (reviewRes.status === 403 || reviewRes.status === 404) {
@@ -164,84 +194,97 @@ async function fetchSteamData(appId) {
 
 async function fetchCcuOnly(appId) {
 	const ccuUrl = `https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=${appId}`;
-	const res = await fetch(ccuUrl, { headers: HEADERS });
+	const res = await fetchWithRetry(ccuUrl);
 	if (!res.ok) return 0;
 	const data = await res.json();
 	return data.response?.player_count || 0;
 }
 
 /* ------------------------------------------------------------------ */
-/*  CCU-only mode (off-peak snapshot)                                  */
+/*  CCU-only mode (off-peak snapshot) — parallel with batch writes      */
 /* ------------------------------------------------------------------ */
 
 async function runCcuOnly(db, games, todayStr) {
 	const todayDate = new Date();
-	let processed = 0;
-	let skipped = 0;
+	const gamesToProcess = games.filter((g) => {
+		if (!g.steamAppId || !g.releaseDate) return false;
+		if (new Date(g.releaseDate) > todayDate) return false;
+		return true;
+	});
 
-	for (const game of games) {
-		if (!game.steamAppId || !game.releaseDate) {
-			skipped++;
-			continue;
-		}
-
-		if (new Date(game.releaseDate) > todayDate) {
-			skipped++;
-			continue;
-		}
-
-		await sleep(DELAY_MS);
-		try {
-			const ccu = await fetchCcuOnly(game.steamAppId);
-			if (!DRY_RUN) {
-				await db
-					.collection('games')
-					.doc(game.id)
-					.set({ metrics: { ccuOffpeak: ccu } }, { merge: true });
+	const tasks = gamesToProcess.map((game) => {
+		const run = async () => {
+			try {
+				const ccu = await fetchCcuOnly(game.steamAppId);
+				return { gameId: game.id, gameName: game.name, ccu };
+			} catch (err) {
+				return { gameId: game.id, gameName: game.name, error: err?.message };
 			}
-			processed++;
-			if (ccu > 0) console.log(`  ${game.name}: CCU ${ccu}`);
-		} catch (err) {
-			console.error(`  ERROR ${game.name}: ${err.message}`);
+		};
+		return run;
+	});
+
+	const results = await runWithConcurrency(tasks, CONCURRENCY, DELAY_MS);
+
+	let processed = 0;
+	const updates = [];
+	for (const r of results) {
+		if (!r) continue;
+		if (r.error) {
+			console.error(`  ERROR ${r.gameName}: ${r.error}`);
+			continue;
+		}
+		processed++;
+		if (r.ccu > 0) console.log(`  ${r.gameName}: CCU ${r.ccu}`);
+		updates.push({ gameId: r.gameId, ccu: r.ccu });
+	}
+
+	if (!DRY_RUN && updates.length > 0) {
+		const BATCH_SIZE = 500;
+		for (let i = 0; i < updates.length; i += BATCH_SIZE) {
+			const batch = db.batch();
+			for (const { gameId, ccu } of updates.slice(i, i + BATCH_SIZE)) {
+				batch.set(
+					db.collection('games').doc(gameId),
+					{ metrics: { ccuOffpeak: ccu } },
+					{ merge: true }
+				);
+			}
+			await commitBatch(batch);
 		}
 	}
 
-	console.log(`\nCCU snapshot complete: ${processed} processed, ${skipped} skipped`);
+	console.log(
+		`\nCCU snapshot complete: ${processed} processed, ${games.length - gamesToProcess.length} skipped`
+	);
 }
 
 /* ------------------------------------------------------------------ */
-/*  Process a single game (full scoring)                               */
+/*  Process a single game (full scoring) — returns result, no writes   */
 /* ------------------------------------------------------------------ */
 
-async function processGame(db, game, todayDate, todayStr) {
+async function processGame(db, game, todayDate, todayStr, gameDataCache) {
 	const releaseDate = new Date(game.releaseDate);
 	const daysSinceRelease = Math.floor((todayDate - releaseDate) / (1000 * 60 * 60 * 24));
 
 	if (daysSinceRelease < 0) {
-		stats.gamesSkipped++;
-		return { gameId: game.id, points: 0, delisted: false };
+		return { gameId: game.id, points: 0, delisted: false, skipped: true };
 	}
 
-	await sleep(DELAY_MS);
 	const current = await fetchSteamData(game.steamAppId);
 
 	if (current.delisted) {
-		stats.gamesDelisted++;
 		return { gameId: game.id, points: 0, delisted: true };
 	}
 	if (!current.success) {
-		stats.gamesFailed++;
-		return { gameId: game.id, points: 0, delisted: false };
+		return { gameId: game.id, points: 0, delisted: false, failed: true };
 	}
 
-	const gameRef = db.collection('games').doc(game.id);
-	const gameDoc = await gameRef.get();
-	const gameData = gameDoc.exists ? gameDoc.data() : {};
-
+	const gameData = gameDataCache.get(game.id) ?? {};
 	const offpeakCcu = gameData?.metrics?.ccuOffpeak ?? 0;
 	const peakCcu = Math.max(current.ccu, offpeakCcu);
 
-	const historyRef = gameRef.collection('history');
+	const historyRef = db.collection('games').doc(game.id).collection('history');
 	const lastSnap = await historyRef.orderBy('date', 'desc').limit(1).get();
 
 	let prev = { estimatedOwners: 0, reviewsTotal: 0 };
@@ -277,7 +320,6 @@ async function processGame(db, game, todayDate, todayStr) {
 		if (ms.check({ reviewsTotal: current.reviewsTotal, peakCcu, positiveRatio })) {
 			milestoneBonus += ms.points;
 			newMilestones.push(ms.id);
-			stats.milestonesBonusTotal += ms.points;
 			console.log(`    MILESTONE: ${game.name} — ${ms.label} (+${ms.points} pts)`);
 		}
 	}
@@ -292,7 +334,6 @@ async function processGame(db, game, todayDate, todayStr) {
 				recentSnap.docs.reduce((sum, d) => sum + (d.data().ccu ?? 0), 0) / recentSnap.size;
 			if (avgCcu > 0 && peakCcu >= avgCcu * BREAKOUT_MULTIPLIER) {
 				breakoutBonus = BREAKOUT_BONUS;
-				stats.breakoutBonusTotal += BREAKOUT_BONUS;
 				console.log(
 					`    BREAKOUT: ${game.name} — CCU ${peakCcu} vs 7d avg ${Math.round(avgCcu)} (+${BREAKOUT_BONUS} pts)`
 				);
@@ -301,53 +342,55 @@ async function processGame(db, game, todayDate, todayStr) {
 	}
 
 	const totalDailyPoints = basePoints + milestoneBonus + breakoutBonus;
-
-	stats.gamesProcessed++;
-	stats.totalPointsAwarded += totalDailyPoints;
-
 	const isActive = current.estimatedOwners > 1000 || salesDelta > 100 || peakCcu > 20;
 
-	if (!DRY_RUN) {
-		const gameUpdate = {
-			lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-			metrics: {
-				estimatedOwners: current.estimatedOwners,
-				ccu: peakCcu,
-				reviewsTotal: current.reviewsTotal,
-				reviewsPositive: current.reviewsPositive,
-				status: isActive ? 'Active' : 'Inactive',
-				score: admin.firestore.FieldValue.increment(totalDailyPoints)
-			}
-		};
-		if (newMilestones.length > 0) {
-			gameUpdate.milestones = admin.firestore.FieldValue.arrayUnion(...newMilestones);
-		}
-		if (breakoutBonus > 0) {
-			gameUpdate.breakoutAwarded = true;
-		}
-		await gameRef.set(gameUpdate, { merge: true });
-
-		await historyRef.doc(todayStr).set({
-			date: todayStr,
+	const gameUpdate = {
+		lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+		metrics: {
 			estimatedOwners: current.estimatedOwners,
-			salesDelta,
 			ccu: peakCcu,
 			reviewsTotal: current.reviewsTotal,
-			reviewsDelta,
-			positiveRatio,
-			points: totalDailyPoints,
-			basePoints,
-			milestoneBonus,
-			breakoutBonus,
-			daysSinceRelease
-		});
+			reviewsPositive: current.reviewsPositive,
+			status: isActive ? 'Active' : 'Inactive',
+			score: admin.firestore.FieldValue.increment(totalDailyPoints)
+		}
+	};
+	if (newMilestones.length > 0) {
+		gameUpdate.milestones = admin.firestore.FieldValue.arrayUnion(...newMilestones);
 	}
+	if (breakoutBonus > 0) {
+		gameUpdate.breakoutAwarded = true;
+	}
+
+	const historyDoc = {
+		date: todayStr,
+		estimatedOwners: current.estimatedOwners,
+		salesDelta,
+		ccu: peakCcu,
+		reviewsTotal: current.reviewsTotal,
+		reviewsDelta,
+		positiveRatio,
+		points: totalDailyPoints,
+		basePoints,
+		milestoneBonus,
+		breakoutBonus,
+		daysSinceRelease
+	};
 
 	console.log(
 		`  ${game.name}: +${totalDailyPoints.toFixed(1)} pts (base ${basePoints.toFixed(1)}) | Sales +${salesDelta} | CCU ${peakCcu}`
 	);
 
-	return { gameId: game.id, points: totalDailyPoints, delisted: false };
+	return {
+		gameId: game.id,
+		points: totalDailyPoints,
+		delisted: false,
+		milestoneBonus,
+		breakoutBonus,
+		gameUpdate,
+		historyDoc,
+		gameRef: db.collection('games').doc(game.id)
+	};
 }
 
 /* ------------------------------------------------------------------ */
@@ -407,22 +450,20 @@ async function processBombDamage(db, todayStr, dailyPointsByGameId) {
 
 		if (DRY_RUN) continue;
 
+		const batch = db.batch();
 		for (const team of teams) {
 			if (bombAdj[team.id] === 0) continue;
-			await db
-				.collection('leagues')
-				.doc(leagueId)
-				.collection('teams')
-				.doc(team.id)
-				.update({ bombAdjustment: admin.firestore.FieldValue.increment(bombAdj[team.id]) });
+			const teamRef = db.collection('leagues').doc(leagueId).collection('teams').doc(team.id);
+			batch.update(teamRef, {
+				bombAdjustment: admin.firestore.FieldValue.increment(bombAdj[team.id])
+			});
 		}
-
-		await db
-			.collection('leagues')
-			.doc(leagueId)
-			.collection('scoring')
-			.doc(todayStr)
-			.set({ date: todayStr, bombAdjustments: bombAdj, bombThreshold }, { merge: true });
+		batch.set(
+			db.collection('leagues').doc(leagueId).collection('scoring').doc(todayStr),
+			{ date: todayStr, bombAdjustments: bombAdj, bombThreshold },
+			{ merge: true }
+		);
+		await commitBatch(batch);
 	}
 }
 
@@ -455,26 +496,99 @@ async function markDelistedGames(db, delistedGameIds) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Write scores summary to Firestore                                  */
+/*  Write scores summary to Firestore (from prefetched + updates)       */
 /* ------------------------------------------------------------------ */
 
-async function writeScoresSummary(db) {
+async function writeScoresSummary(db, gameDataCache, updatesToCommit, todayStr) {
 	if (DRY_RUN) {
 		console.log('\n(dry-run) Skipping scores summary write');
 		return;
 	}
 
-	const snap = await db.collection('games').get();
 	const scores = {};
-	snap.docs.forEach((d) => {
-		const score = d.data().metrics?.score;
-		if (score != null) scores[d.ref.id] = score;
-	});
+	for (const [gameId, data] of gameDataCache) {
+		const score = data?.metrics?.score;
+		if (score != null) scores[gameId] = score;
+	}
+	for (const { gameRef, gameUpdate, historyDoc } of updatesToCommit) {
+		const gameId = gameRef.id;
+		const oldScore = gameDataCache.get(gameId)?.metrics?.score ?? 0;
+		scores[gameId] = oldScore + (historyDoc?.points ?? 0);
+	}
 	await db
 		.collection('meta')
 		.doc('scores')
 		.set({ scores, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
 	console.log(`\nWrote scores summary (${Object.keys(scores).length} games) to meta/scores`);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Concurrency pool with stagger                                      */
+/* ------------------------------------------------------------------ */
+
+async function runWithConcurrency(tasks, concurrency, delayMs) {
+	const results = new Array(tasks.length);
+	let nextIdx = 0;
+
+	async function runNext() {
+		const idx = nextIdx++;
+		if (idx >= tasks.length) return;
+		try {
+			const result = await tasks[idx]();
+			results[idx] = result;
+		} catch (err) {
+			results[idx] = { error: err?.message ?? String(err), gameId: null };
+		}
+		if (nextIdx < tasks.length) {
+			if (delayMs > 0) await sleep(delayMs);
+			await runNext();
+		}
+	}
+
+	const workers = [];
+	for (let i = 0; i < Math.min(concurrency, tasks.length); i++) {
+		workers.push(runNext());
+	}
+	await Promise.all(workers);
+	return results;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Prefetch all game docs                                             */
+/* ------------------------------------------------------------------ */
+
+async function prefetchGameDocs(db, gameIds) {
+	const cache = new Map();
+	const BATCH_SIZE = 500;
+	for (let i = 0; i < gameIds.length; i += BATCH_SIZE) {
+		const batch = gameIds.slice(i, i + BATCH_SIZE);
+		const refs = batch.map((id) => db.collection('games').doc(id));
+		const snapshots = await db.getAll(...refs);
+		snapshots.forEach((snap, j) => {
+			if (snap.exists) cache.set(batch[j], snap.data());
+		});
+	}
+	return cache;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Batch commit with retry                                            */
+/* ------------------------------------------------------------------ */
+
+async function commitBatch(batch) {
+	let lastErr;
+	for (let attempt = 0; attempt < BATCH_COMMIT_RETRIES; attempt++) {
+		try {
+			await batch.commit();
+			return;
+		} catch (err) {
+			lastErr = err;
+			const backoff = BATCH_COMMIT_INITIAL_BACKOFF_MS * Math.pow(2, attempt);
+			console.error(`  Batch commit failed (attempt ${attempt + 1}), retrying in ${backoff}ms...`);
+			await sleep(backoff);
+		}
+	}
+	throw lastErr;
 }
 
 /* ------------------------------------------------------------------ */
@@ -495,35 +609,92 @@ async function main() {
 		return;
 	}
 
-	console.log(`=== Score Update (Peak) — ${todayStr} — ${games.length} games ===\n`);
+	console.log(
+		`=== Score Update (Peak) — ${todayStr} — ${games.length} games (concurrency ${CONCURRENCY}, delay ${DELAY_MS}ms) ===\n`
+	);
+
+	const gamesToProcess = games.filter((g) => {
+		if (!g.steamAppId || !g.releaseDate) return false;
+		if (new Date(g.releaseDate) > todayDate) return false;
+		return true;
+	});
+
+	stats.gamesSkipped = games.length - gamesToProcess.length;
+
+	const allGameIds = games.map((g) => g.id);
+	console.log('Prefetching game docs...');
+	const gameDataCache = await prefetchGameDocs(db, allGameIds);
+	console.log(`  Cached ${gameDataCache.size} game docs\n`);
+
+	const tasks = gamesToProcess.map((game) => {
+		const run = async () => {
+			try {
+				return await processGame(db, game, todayDate, todayStr, gameDataCache);
+			} catch (err) {
+				return { error: err?.message ?? String(err), gameId: game.id };
+			}
+		};
+		return run;
+	});
+
+	const results = await runWithConcurrency(tasks, CONCURRENCY, DELAY_MS);
 
 	const dailyPointsByGameId = {};
 	const delistedGameIds = [];
+	const updatesToCommit = [];
 
-	for (const game of games) {
-		if (!game.steamAppId || !game.releaseDate) {
-			stats.gamesSkipped++;
-			continue;
-		}
-
-		if (new Date(game.releaseDate) > todayDate) {
-			stats.gamesSkipped++;
-			continue;
-		}
-
-		try {
-			const result = await processGame(db, game, todayDate, todayStr);
-			if (result.points > 0) dailyPointsByGameId[result.gameId] = result.points;
-			if (result.delisted) delistedGameIds.push(result.gameId);
-		} catch (err) {
+	for (const r of results) {
+		if (!r) continue;
+		if (r.error) {
 			stats.gamesFailed++;
-			console.error(`  ERROR processing ${game.name}: ${err.message}`);
+			console.error(`  ERROR processing game: ${r.error}`);
+			continue;
+		}
+		if (r.skipped) {
+			stats.gamesSkipped++;
+			continue;
+		}
+		if (r.delisted) {
+			stats.gamesDelisted++;
+			delistedGameIds.push(r.gameId);
+			continue;
+		}
+		if (r.failed) {
+			stats.gamesFailed++;
+			continue;
+		}
+		stats.gamesProcessed++;
+		stats.totalPointsAwarded += r.points;
+		stats.milestonesBonusTotal += r.milestoneBonus ?? 0;
+		stats.breakoutBonusTotal += r.breakoutBonus ?? 0;
+		if (r.points > 0) dailyPointsByGameId[r.gameId] = r.points;
+		if (r.gameUpdate && r.historyDoc && r.gameRef) {
+			updatesToCommit.push({
+				gameRef: r.gameRef,
+				gameUpdate: r.gameUpdate,
+				historyDoc: r.historyDoc
+			});
+		}
+	}
+
+	if (!DRY_RUN && updatesToCommit.length > 0) {
+		console.log(`\nCommitting ${updatesToCommit.length} game updates in batches...`);
+		const BATCH_OPS = 250;
+		for (let i = 0; i < updatesToCommit.length; i += BATCH_OPS) {
+			const chunk = updatesToCommit.slice(i, i + BATCH_OPS);
+			const batch = db.batch();
+			for (const { gameRef, gameUpdate, historyDoc } of chunk) {
+				batch.set(gameRef, gameUpdate, { merge: true });
+				batch.set(gameRef.collection('history').doc(todayStr), historyDoc);
+			}
+			await commitBatch(batch);
+			console.log(`  Committed batch ${Math.floor(i / BATCH_OPS) + 1}`);
 		}
 	}
 
 	await processBombDamage(db, todayStr, dailyPointsByGameId);
 	await markDelistedGames(db, delistedGameIds);
-	await writeScoresSummary(db);
+	await writeScoresSummary(db, gameDataCache, updatesToCommit, todayStr);
 
 	console.log('\n=== Summary ===');
 	console.log(`  Games processed  : ${stats.gamesProcessed}`);

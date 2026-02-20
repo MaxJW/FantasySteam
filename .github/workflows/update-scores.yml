@@ -31,9 +31,10 @@ jobs:
       - name: Run update-scores
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        timeout-minutes: 30
         run: |
           if [[ "${{ github.event.schedule }}" == "0 6 * * *" ]] || [[ "${{ github.event.inputs.mode }}" == "ccu-only" ]]; then
-            npm run update-scores -- --ccu-only
+            npm run update-scores -- --ccu-only --concurrency 2
           else
-            npm run update-scores
+            npm run update-scores -- --concurrency 2
           fi

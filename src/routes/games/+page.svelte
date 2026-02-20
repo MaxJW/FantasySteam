@@ -6,6 +6,7 @@
 	import {
 		getGame,
 		getGameListPage,
+		getGameListGenres,
 		getGameListYears,
 		refreshGames,
 		DRAFT_PHASES,
@@ -25,6 +26,7 @@
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
 	import Search from '@lucide/svelte/icons/search';
+	import Tags from '@lucide/svelte/icons/tags';
 
 	type ViewMode = 'table' | 'grid';
 
@@ -47,6 +49,8 @@
 	let years = $state<string[]>([]);
 	let selectedYear = $state<string>('');
 	let selectedSeason = $state<DraftPhase | ''>('');
+	let genres = $state<string[]>([]);
+	let selectedGenres = $state<string[]>([]);
 	let hideReleased = $state(false);
 	let games = $state<GameListEntry[]>([]);
 	let totalCount = $state(0);
@@ -116,6 +120,15 @@
 			});
 	});
 
+	$effect(() => {
+		const year = selectedYear ? parseInt(selectedYear, 10) : 0;
+		if (!year || Number.isNaN(year)) {
+			genres = [];
+			return;
+		}
+		getGameListGenres(year).then((g) => (genres = g));
+	});
+
 	async function loadFirstPage() {
 		const year = selectedYear ? parseInt(selectedYear, 10) : 0;
 		if (!year || Number.isNaN(year)) return;
@@ -126,7 +139,8 @@
 			sortBy,
 			order,
 			search: searchQuery.trim() || undefined,
-			hideReleased: hideReleased || undefined
+			hideReleased: hideReleased || undefined,
+			genres: selectedGenres.length ? selectedGenres : undefined
 		};
 		if (selectedSeason) {
 			const { start, end } = getPhaseReleaseDateRange(selectedSeason, year);
@@ -154,7 +168,8 @@
 			sortBy,
 			order,
 			search: searchQuery.trim() || undefined,
-			hideReleased: hideReleased || undefined
+			hideReleased: hideReleased || undefined,
+			genres: selectedGenres.length ? selectedGenres : undefined
 		};
 		if (selectedSeason) {
 			const { start, end } = getPhaseReleaseDateRange(selectedSeason, year);
@@ -183,6 +198,7 @@
 		const _ = sortOption;
 		const __ = selectedSeason;
 		const ___ = hideReleased;
+		const ____ = selectedGenres;
 		if (selectedYear) {
 			loadFirstPage();
 		}
@@ -259,6 +275,22 @@
 									<Select.Item value={phase} label={PHASE_CONFIG[phase].label}>
 										{PHASE_CONFIG[phase].label}
 									</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
+					</div>
+
+					<div class="flex items-center gap-2">
+						<Tags class="h-4 w-4 text-muted-foreground" />
+						<Select.Root bind:value={selectedGenres} type="multiple">
+							<Select.Trigger
+								class="max-w-[220px] min-w-[140px] border-white/[0.08] bg-white/[0.04]"
+							>
+								{selectedGenres.length ? selectedGenres.join(', ') : 'Genre'}
+							</Select.Trigger>
+							<Select.Content>
+								{#each genres as genre}
+									<Select.Item value={genre} label={genre}>{genre}</Select.Item>
 								{/each}
 							</Select.Content>
 						</Select.Root>
