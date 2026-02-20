@@ -46,6 +46,7 @@
 	let years = $state<string[]>([]);
 	let selectedYear = $state<string>('');
 	let selectedSeason = $state<DraftPhase | ''>('');
+	let hideReleased = $state(false);
 	let games = $state<GameListEntry[]>([]);
 	let totalCount = $state(0);
 	let loadingYears = $state(true);
@@ -98,7 +99,8 @@
 		const opts: Parameters<typeof getGameListPage>[3] = {
 			sortBy,
 			order,
-			search: searchQuery.trim() || undefined
+			search: searchQuery.trim() || undefined,
+			hideReleased: hideReleased || undefined
 		};
 		if (selectedSeason) {
 			const { start, end } = getPhaseReleaseDateRange(selectedSeason, year);
@@ -122,7 +124,8 @@
 		const opts: Parameters<typeof getGameListPage>[3] = {
 			sortBy,
 			order,
-			search: searchQuery.trim() || undefined
+			search: searchQuery.trim() || undefined,
+			hideReleased: hideReleased || undefined
 		};
 		if (selectedSeason) {
 			const { start, end } = getPhaseReleaseDateRange(selectedSeason, year);
@@ -150,6 +153,7 @@
 	$effect(() => {
 		const _ = sortOption;
 		const __ = selectedSeason;
+		const ___ = hideReleased;
 		if (selectedYear) {
 			loadFirstPage();
 		}
@@ -230,6 +234,17 @@
 							</Select.Content>
 						</Select.Root>
 					</div>
+
+					<label
+						class="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+					>
+						<input
+							type="checkbox"
+							bind:checked={hideReleased}
+							class="h-4 w-4 rounded-md border border-white/[0.08] bg-white/[0.04] accent-primary"
+						/>
+						Hide released
+					</label>
 				</div>
 
 				<div class="relative w-full min-w-0 sm:max-w-xs sm:flex-1">

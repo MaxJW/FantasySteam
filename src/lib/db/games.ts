@@ -80,7 +80,7 @@ export function getGameList(year: number): Promise<GameListEntry[]> {
 export type GameListSortBy = 'id' | 'name' | 'date' | 'score';
 export type GameListOrder = 'asc' | 'desc';
 
-/** Paginated games for a year. Optional search, sort, releaseFrom/releaseTo (YYYY-MM-DD). */
+/** Paginated games for a year. Optional search, sort, releaseFrom/releaseTo (YYYY-MM-DD), hideReleased. */
 export async function getGameListPage(
 	year: number,
 	limit: number,
@@ -91,6 +91,7 @@ export async function getGameListPage(
 		order?: GameListOrder;
 		releaseFrom?: string;
 		releaseTo?: string;
+		hideReleased?: boolean;
 	}
 ): Promise<{ games: GameListEntry[]; total: number }> {
 	let full = await getFullGameListForYear(year);
@@ -99,6 +100,13 @@ export async function getGameListPage(
 	}
 	if (opts?.releaseTo) {
 		full = full.filter((g) => (g.releaseDate ?? '') <= opts.releaseTo!);
+	}
+	if (opts?.hideReleased) {
+		const today = new Date().toISOString().split('T')[0];
+		full = full.filter((g) => {
+			const d = g.releaseDate ?? '';
+			return !d || d > today;
+		});
 	}
 	if (opts?.search?.trim()) {
 		const q = opts.search.trim().toLowerCase();

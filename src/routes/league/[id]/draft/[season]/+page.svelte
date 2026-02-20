@@ -84,6 +84,8 @@
 
 	let gameDetailCacheVersion = $state(0);
 	let memberDisplayNames = $state<Map<string, string>>(new Map());
+	let gameListScrollTop = $state(0);
+	let gameListViewportRef = $state<HTMLDivElement | null>(null);
 
 	const me = $derived(getCurrentUser());
 	const isCommissioner = $derived(!!(me && league && league.commissionerId === me.uid));
@@ -261,6 +263,7 @@
 		const search = modalSearch.trim() || undefined;
 		const { releaseFrom, releaseTo } = getDateFilters();
 
+		gameListScrollTop = 0;
 		gameListLoading = true;
 		gameList = [];
 		gameListTotal = 0;
@@ -331,7 +334,16 @@
 		return () => observer.disconnect();
 	});
 
+	$effect(() => {
+		if (modalStep !== 'game' || !gameListViewportRef) return;
+		const saved = gameListScrollTop;
+		queueMicrotask(() => {
+			if (gameListViewportRef) gameListViewportRef.scrollTop = saved;
+		});
+	});
+
 	async function openGameDetail(id: string) {
+		gameListScrollTop = gameListViewportRef?.scrollTop ?? 0;
 		detailLoading = true;
 		detailGame = null;
 		modalStep = 'confirm';
@@ -781,7 +793,7 @@
 								<LoaderCircle class="animate-spin text-primary" />
 							</div>
 						{:else}
-							<ScrollArea class="min-h-0 flex-1">
+							<ScrollArea class="min-h-0 flex-1" bind:viewportRef={gameListViewportRef}>
 								<div class="p-3">
 									<div class="grid grid-cols-1 gap-0.5">
 										{#each gameListAvailable as game}
