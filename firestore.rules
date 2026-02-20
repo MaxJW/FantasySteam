@@ -37,6 +37,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Season snapshots (past season final results) — computed and cached on first visit
+    match /leagues/{leagueId}/seasonResults/{season} {
+      allow read: if request.auth != null && isLeagueMember(leagueId);
+      allow create: if request.auth != null && isLeagueMember(leagueId);
+      allow update: if false;  // Snapshots are immutable once created
+      allow delete: if false;
+    }
+
     match /meta/{docId} {
       allow read: if request.auth != null;
       allow write: if false;
