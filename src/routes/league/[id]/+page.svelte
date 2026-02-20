@@ -127,7 +127,9 @@
 			if (!isPastSeason(season)) {
 				await syncLeagueCurrentPhase(id);
 				const updated = await getLeague(id);
-				if (updated) league = updated;
+				if (updated && updated.currentPhase !== league?.currentPhase) {
+					league = updated;
+				}
 			}
 		});
 	});

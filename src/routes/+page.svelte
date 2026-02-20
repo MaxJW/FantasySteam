@@ -20,24 +20,18 @@
 
 	$effect(() => {
 		let timeoutId: ReturnType<typeof setTimeout>;
-
 		const unsub = currentUser.subscribe((u) => {
-			if (u === null) {
-				loading = false;
+			if (u === null || u) {
 				clearTimeout(timeoutId);
 			}
-			if (u) {
-				clearTimeout(timeoutId);
-				goto('/dashboard');
-			}
+			if (u === null) loading = false;
+			if (u) goto('/dashboard');
 		});
-
-		// Fallback: if Firebase auth (e.g. onAuthStateChanged) is delayed on mobile
-		// (Safari IndexedDB issues), show sign-in UI after 5s so user isn't stuck
+		// Fallback: on iOS, Firebase onAuthStateChanged can be delayed or not fire.
+		// If we're still loading after 4s, show the landing page so the user isn't stuck.
 		timeoutId = setTimeout(() => {
 			loading = false;
-		}, 5000);
-
+		}, 4000);
 		return () => {
 			unsub();
 			clearTimeout(timeoutId);

@@ -23,11 +23,23 @@
 	});
 
 	$effect(() => {
+		let timeoutId: ReturnType<typeof setTimeout>;
 		const unsub = currentUser.subscribe((u) => {
 			const publicPaths = ['/', '/how-to-play'];
 			if (!publicPaths.includes(path) && u === null) goto('/');
+			if (u !== undefined) clearTimeout(timeoutId);
 		});
-		return unsub;
+		// If auth never resolves on protected routes (e.g. iOS), redirect to home after 5s
+		const publicPaths = ['/', '/how-to-play'];
+		if (!publicPaths.includes(path) && get(currentUser) === undefined) {
+			timeoutId = setTimeout(() => {
+				if (get(currentUser) === undefined) goto('/');
+			}, 5000);
+		}
+		return () => {
+			unsub();
+			clearTimeout(timeoutId);
+		};
 	});
 
 	function isActive(href: string) {
