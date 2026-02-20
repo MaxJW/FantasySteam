@@ -9,9 +9,9 @@ export default defineConfig({
 		sveltekit(),
 		SvelteKitPWA({
 			manifest: {
-				name: 'Fantasy Steam League',
+				name: 'Fantasy Steam',
 				short_name: 'FantasySteam',
-				description: 'Fantasy Steam League - draft games and compete with friends',
+				description: 'Fantasy Steam - draft games and compete with friends',
 				theme_color: '#171d2b',
 				background_color: '#171d2b',
 				display: 'standalone',
@@ -27,11 +27,6 @@ export default defineConfig({
 			kit: {
 				adapterFallback: '404.html',
 				spa: true
-			},
-			pwaAssets: {
-				image: 'static/favicon.svg',
-				overrideManifestIcons: true,
-				preset: 'minimal-2023'
 			}
 		})
 	]
