@@ -397,7 +397,7 @@ async function processGame(db, game, todayDate, todayStr, gameDataCache) {
 /*  Bomb damage (relative threshold — 25th percentile)                 */
 /* ------------------------------------------------------------------ */
 
-async function processBombDamage(db, todayStr, dailyPointsByGameId) {
+async function processBombDamage(db, todayStr, dailyPointsByGameId, releasedGameIds) {
 	const bombThreshold = computeBombThreshold(dailyPointsByGameId);
 	stats.bombThreshold = bombThreshold;
 
@@ -431,6 +431,7 @@ async function processBombDamage(db, todayStr, dailyPointsByGameId) {
 		for (const team of teams) {
 			const bombGameId = team.picks?.bombPick;
 			if (!bombGameId) continue;
+			if (!releasedGameIds.has(bombGameId)) continue;
 
 			const dailyPts = dailyPointsByGameId[bombGameId] ?? 0;
 			const damage = Math.max(0, bombThreshold - dailyPts);
@@ -692,7 +693,8 @@ async function main() {
 		}
 	}
 
-	await processBombDamage(db, todayStr, dailyPointsByGameId);
+	const releasedGameIds = new Set(gamesToProcess.map((g) => g.id));
+	await processBombDamage(db, todayStr, dailyPointsByGameId, releasedGameIds);
 	await markDelistedGames(db, delistedGameIds);
 	await writeScoresSummary(db, gameDataCache, updatesToCommit, todayStr);
 

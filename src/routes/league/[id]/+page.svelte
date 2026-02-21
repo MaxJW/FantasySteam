@@ -415,6 +415,22 @@
 		}
 	}
 
+	function getStatusLabel(): string {
+		if (!league) return '';
+		if (league.status === 'completed') {
+			return league.season && isPastSeason(league.season)
+				? `Season ${league.season} Complete`
+				: 'Completed';
+		}
+		if (league.status === 'draft') {
+			const phase = league.currentPhase ?? 'winter';
+			if (phase !== 'winter') return 'Scoring';
+			const open = league.season && isDraftWindowOpen(phase, league.season);
+			return open ? 'Drafting' : 'Pre-Season';
+		}
+		return 'Scoring';
+	}
+
 	function isImplicitlyComplete(phase: DraftPhase): boolean {
 		if (!league) return false;
 		const idx = DRAFT_PHASES.indexOf(phase);
@@ -551,11 +567,7 @@
 								: 'outline'}
 						class="text-[10px]"
 					>
-						{league.status === 'draft'
-							? 'Pre-Season'
-							: league.status === 'active'
-								? 'Active'
-								: 'Completed'}
+						{getStatusLabel()}
 					</Badge>
 				</div>
 			</div>
