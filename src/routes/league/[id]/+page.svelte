@@ -17,7 +17,9 @@
 		getUserProfile,
 		getBookmarkedGameIds,
 		addBookmark,
-		removeBookmark
+		removeBookmark,
+		getBombDamageBreakdown,
+		getBombDamageBreakdownForAllTeams
 	} from '$lib/db';
 	import type { Team, Game, DraftPhase, DraftStatus, SeasonSnapshot } from '$lib/db';
 	import {
@@ -26,6 +28,7 @@
 		getDraftId,
 		getScoringGameIds,
 		getSeasonalPicksForPlayerCount,
+		getSeasonEndDate,
 		isDraftWindowOpen,
 		isPastSeason
 	} from '$lib/db';
@@ -47,6 +50,9 @@
 	import Bomb from '@lucide/svelte/icons/bomb';
 	import Snowflake from '@lucide/svelte/icons/snowflake';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
+	import { PickGameCard } from '$lib/components/pick-game-card';
+	import { ScoreBreakdownDialog } from '$lib/components/score-breakdown-dialog';
+	import Info from '@lucide/svelte/icons/info';
 	import CheckCircle from '@lucide/svelte/icons/check-circle';
 	import Circle from '@lucide/svelte/icons/circle';
 	import Loader from '@lucide/svelte/icons/loader';
@@ -84,6 +90,11 @@
 	let seasonSnapshot = $state<SeasonSnapshot | null>(null);
 	let loadError = $state<string | null>(null);
 	let bookmarkedIds = $state<Set<string>>(new Set());
+	let scoreBreakdownTeamId = $state<string | null>(null);
+	let bombBreakdown = $state<Awaited<ReturnType<typeof getBombDamageBreakdown>>>([]);
+	let bombBreakdownByTeam = $state<Record<string, Awaited<ReturnType<typeof getBombDamageBreakdown>>>>(
+		{}
+	);
 
 	const me = $derived(getCurrentUser());
 
@@ -273,6 +284,33 @@
 		getUpcomingGames().then((list) => (upcomingGames = list));
 	});
 
+	$effect(() => {
+		const teamId = scoreBreakdownTeamId;
+		const id = leagueId;
+		if (!teamId || !id || teams.length === 0) {
+			bombBreakdown = [];
+			return;
+		}
+		const seasonEnd =
+			league?.season && isPastSeason(league.season) ? getSeasonEndDate(league.season) : undefined;
+		getBombDamageBreakdown(id, teamId, teams, games, seasonEnd).then(
+			(breakdown) => (bombBreakdown = breakdown)
+		);
+	});
+
+	$effect(() => {
+		const id = leagueId;
+		if (!id || teams.length === 0) {
+			bombBreakdownByTeam = {};
+			return;
+		}
+		const seasonEnd =
+			league?.season && isPastSeason(league.season) ? getSeasonEndDate(league.season) : undefined;
+		getBombDamageBreakdownForAllTeams(id, teams, games, seasonEnd).then(
+			(byTeam) => (bombBreakdownByTeam = byTeam)
+		);
+	});
+
 	function toggleTeam(teamId: string) {
 		const next = new Set(expandedTeams);
 		if (next.has(teamId)) next.delete(teamId);
@@ -326,8 +364,8 @@
 				dates: seasonSnapshot.graphData.dates,
 				series: seasonSnapshot.graphData.series.map((s) => ({
 					name:
-						userProfiles[s.teamId]?.displayName ||
 						teams.find((t) => t.id === s.teamId)?.name ||
+						userProfiles[s.teamId]?.displayName ||
 						'Unknown',
 					data: s.data
 				}))
@@ -342,7 +380,7 @@
 		const series = teamsSortedByScore.map((team) => {
 			const scores = teamScoresHistory.get(team.id) || new Map();
 			return {
-				name: userProfiles[team.id]?.displayName || team.name,
+				name: team.name || userProfiles[team.id]?.displayName,
 				data: sortedDates.map((date) => scores.get(date) || 0)
 			};
 		});
@@ -590,12 +628,22 @@
 							Season {league.season} Complete
 						</p>
 						<h2 class="text-2xl font-bold text-foreground md:text-3xl">
-							{winner ? userProfiles[winner.id]?.displayName || winner.name : '—'} is the Champion
+							{winner ? winner.name || userProfiles[winner.id]?.displayName : '—'} is the Champion
 						</h2>
 						{#if winner}
-							<p class="text-lg font-semibold text-primary">
-								Final score: {Math.round(getDisplayScore(winner)).toLocaleString()}
-							</p>
+							<div class="flex items-center gap-2">
+								<p class="text-lg font-semibold text-primary">
+									Final score: {Math.round(getDisplayScore(winner)).toLocaleString()}
+								</p>
+								<button
+									type="button"
+									class="rounded p-1 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+									onclick={() => (scoreBreakdownTeamId = winner.id)}
+									title="Score breakdown"
+								>
+									<Info class="h-4 w-4" />
+								</button>
+							</div>
 						{/if}
 					</div>
 					{#if winner}
@@ -607,7 +655,7 @@
 								alt={winner.name}
 							/>
 							<Avatar.Fallback class="text-xl">
-								{(userProfiles[winner.id]?.displayName || winner.name).slice(0, 2).toUpperCase()}
+								{(winner.name || userProfiles[winner.id]?.displayName).slice(0, 2).toUpperCase()}
 							</Avatar.Fallback>
 						</Avatar.Root>
 					{/if}
@@ -989,9 +1037,13 @@
 							<div
 								class="overflow-hidden rounded-xl border border-white/[0.06] bg-card/40 transition-colors hover:border-white/[0.1]"
 							>
-								<button
+								<div
+									role="button"
+									tabindex="0"
 									class="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left"
 									onclick={() => toggleTeam(team.id)}
+									onkeydown={(e) =>
+										(e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toggleTeam(team.id))}
 								>
 									<span
 										class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold {getRankStyle(
@@ -1006,102 +1058,72 @@
 											alt={team.name}
 										/>
 										<Avatar.Fallback class="text-xs">
-											{(userProfiles[team.id]?.displayName || team.name).slice(0, 2).toUpperCase()}
+											{(team.name || userProfiles[team.id]?.displayName).slice(0, 2).toUpperCase()}
 										</Avatar.Fallback>
 									</Avatar.Root>
 									<div class="min-w-0 flex-1">
-										<p class="truncate font-medium">
+										<p class="truncate font-medium">{team.name}</p>
+										<p class="truncate text-xs text-muted-foreground">
 											{userProfiles[team.id]?.displayName || team.name}
 										</p>
-										<p class="truncate text-xs text-muted-foreground">{team.name}</p>
 									</div>
 									<div class="flex items-center gap-3">
 										<span class="font-mono text-lg font-bold text-primary"
 											>{Math.round(getDisplayScore(team))}</span
 										>
+										<button
+											type="button"
+											class="rounded p-1 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+											onclick={(e) => {
+												e.stopPropagation();
+												scoreBreakdownTeamId = team.id;
+											}}
+											title="Score breakdown"
+										>
+											<Info class="h-4 w-4" />
+										</button>
 										{#if expandedTeams.has(team.id)}
 											<ChevronUp class="h-4 w-4 text-muted-foreground" />
 										{:else}
 											<ChevronDown class="h-4 w-4 text-muted-foreground" />
 										{/if}
 									</div>
-								</button>
+								</div>
 								{#if expandedTeams.has(team.id)}
 									{@const hitGame = team.picks?.hitPick ? games[team.picks.hitPick] : null}
-									{@const bombGame = team.picks?.bombPick ? games[team.picks.bombPick] : null}
+									{@const bombsReceived = bombBreakdownByTeam[team.id] ?? []}
 									<div class="animate-fade-in-up space-y-4 border-t border-white/[0.06] px-4 py-4">
-										<!-- Hit & Bomb -->
-										{#if hitGame || bombGame}
-											<div class="flex flex-wrap gap-2.5">
-												{#if hitGame}
-													<button
-														type="button"
-														class="group relative block w-20 cursor-pointer overflow-hidden rounded-lg border border-white/[0.08] text-left transition-all hover:border-accent/40 hover:shadow-md focus:ring-2 focus:ring-ring focus:outline-none"
-														onclick={() => openGameDetail(team.picks.hitPick!)}
-													>
-														{#if hitGame.coverUrl}
-															<img
-																src={hitGame.coverUrl}
-																alt={hitGame.name}
-																class="aspect-[3/4] w-full object-cover"
+										<!-- Hit & Bombs received (from other teams) -->
+										{#if hitGame || bombsReceived.length > 0}
+											<div>
+												<p
+													class="mb-2 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase"
+												>
+													Hit & Bomb
+												</p>
+												<div class="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
+													{#if hitGame}
+														<PickGameCard
+															game={hitGame}
+															pickType="hitPick"
+															{isPastSeasonView}
+															onclick={() => openGameDetail(team.picks.hitPick!)}
+														/>
+													{/if}
+													{#each bombsReceived as bombItem}
+														{@const bombGameData = games[bombItem.gameId]}
+														{#if bombGameData}
+															<PickGameCard
+																game={{ ...bombGameData, id: bombItem.gameId }}
+																pickType="bombPick"
+																{isPastSeasonView}
+																bombReceivedLabel={`${bombItem.pickerTeamName}'s bomb`}
+																bombDamageReceived={bombItem.damage}
+																onclick={() => openGameDetail(bombItem.gameId)}
 															/>
-														{:else}
-															<div
-																class="flex aspect-[3/4] w-full items-center justify-center bg-muted"
-															>
-																<span class="px-1 text-center text-[9px] text-muted-foreground"
-																	>{hitGame.name}</span
-																>
-															</div>
 														{/if}
-														<div
-															class="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/80 px-1.5 py-0.5"
-														>
-															<div class="flex items-center gap-0.5">
-																<Target class="h-2.5 w-2.5 text-accent" />
-																<span class="text-[9px] font-medium text-white">Hit</span>
-															</div>
-															{#if !isPastSeasonView && hitGame.score != null}
-																<span class="font-mono text-[9px] font-bold text-white"
-																	>{Math.round(hitGame.score)}</span
-																>
-															{:else if isPastSeasonView}
-																<span class="text-[9px] text-white/70">—</span>
-															{/if}
-														</div>
-													</button>
-												{/if}
-												{#if bombGame}
-													<button
-														type="button"
-														class="group relative block w-20 cursor-pointer overflow-hidden rounded-lg border border-white/[0.08] text-left transition-all hover:border-destructive/40 hover:shadow-md focus:ring-2 focus:ring-ring focus:outline-none"
-														onclick={() => openGameDetail(team.picks.bombPick!)}
-													>
-														{#if bombGame.coverUrl}
-															<img
-																src={bombGame.coverUrl}
-																alt={bombGame.name}
-																class="aspect-[3/4] w-full object-cover"
-															/>
-														{:else}
-															<div
-																class="flex aspect-[3/4] w-full items-center justify-center bg-muted"
-															>
-																<span class="px-1 text-center text-[9px] text-muted-foreground"
-																	>{bombGame.name}</span
-																>
-															</div>
-														{/if}
-														<div
-															class="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/80 px-1.5 py-0.5"
-														>
-															<div class="flex items-center gap-0.5">
-																<Bomb class="h-2.5 w-2.5 text-destructive" />
-																<span class="text-[9px] font-medium text-white">Bomb</span>
-															</div>
-														</div>
-													</button>
-												{/if}
+													{/each}
+												</div>
 											</div>
 										{/if}
 
@@ -1125,40 +1147,13 @@
 														{#each phasePicks as gameId}
 															{@const game = games[gameId]}
 															{#if game}
-																<button
-																	type="button"
-																	class="group relative block w-full cursor-pointer overflow-hidden rounded-lg border border-white/[0.08] text-left transition-all hover:border-sky-400/40 hover:shadow-md focus:ring-2 focus:ring-ring focus:outline-none"
+																<PickGameCard
+																	{game}
+																	pickType="seasonalPick"
+																	{phase}
+																	{isPastSeasonView}
 																	onclick={() => openGameDetail(gameId)}
-																>
-																	{#if game.coverUrl}
-																		<img
-																			src={game.coverUrl}
-																			alt={game.name}
-																			class="aspect-[3/4] w-full object-cover"
-																		/>
-																	{:else}
-																		<div
-																			class="flex aspect-[3/4] w-full items-center justify-center bg-muted"
-																		>
-																			<span
-																				class="px-1 text-center text-[9px] text-muted-foreground"
-																				>{game.name}</span
-																			>
-																		</div>
-																	{/if}
-																	<div
-																		class="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/80 px-1 py-0.5"
-																	>
-																		<Snowflake class="h-2.5 w-2.5 text-sky-400" />
-																		{#if !isPastSeasonView && game.score != null}
-																			<span class="font-mono text-[9px] font-bold text-white"
-																				>{Math.round(game.score)}</span
-																			>
-																		{:else if isPastSeasonView}
-																			<span class="text-[9px] text-white/70">—</span>
-																		{/if}
-																	</div>
-																</button>
+																/>
 															{/if}
 														{/each}
 													</div>
@@ -1178,32 +1173,12 @@
 													{#each team.picks?.altPicks ?? [] as gameId}
 														{@const game = games[gameId]}
 														{#if game}
-															<button
-																type="button"
-																class="group relative block w-full cursor-pointer overflow-hidden rounded-lg border border-dashed border-purple-400/20 text-left opacity-60 transition-all hover:border-purple-400/40 hover:opacity-100 hover:shadow-md focus:ring-2 focus:ring-ring focus:outline-none"
+															<PickGameCard
+																{game}
+																pickType="altPick"
+																{isPastSeasonView}
 																onclick={() => openGameDetail(gameId)}
-															>
-																{#if game.coverUrl}
-																	<img
-																		src={game.coverUrl}
-																		alt={game.name}
-																		class="aspect-[3/4] w-full object-cover"
-																	/>
-																{:else}
-																	<div
-																		class="flex aspect-[3/4] w-full items-center justify-center bg-muted"
-																	>
-																		<span class="px-1 text-center text-[9px] text-muted-foreground"
-																			>{game.name}</span
-																		>
-																	</div>
-																{/if}
-																<div
-																	class="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/80 px-1 py-0.5"
-																>
-																	<Shuffle class="h-2.5 w-2.5 text-purple-400" />
-																</div>
-															</button>
+															/>
 														{/if}
 													{/each}
 												</div>
@@ -1304,7 +1279,7 @@
 															<span
 																class="rounded bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-muted-foreground"
 															>
-																{userProfiles[t.id]?.displayName || t.name}
+																{t.name || userProfiles[t.id]?.displayName}
 															</span>
 														{/each}
 													</div>
@@ -1330,4 +1305,23 @@
 	showNotFound={selectedGameId != null && !detailLoading && detailGame == null}
 	isBookmarked={selectedGameId != null && bookmarkedIds.has(selectedGameId)}
 	onToggleBookmark={handleToggleBookmark}
+/>
+
+<ScoreBreakdownDialog
+	open={scoreBreakdownTeamId != null}
+	onOpenChange={(open) => !open && (scoreBreakdownTeamId = null)}
+	team={scoreBreakdownTeamId ? teams.find((t) => t.id === scoreBreakdownTeamId) ?? null : null}
+	games={games}
+	delistedGames={league?.delistedGames ?? []}
+	teamDisplayName={
+		(() => {
+			const t = scoreBreakdownTeamId ? teams.find((t) => t.id === scoreBreakdownTeamId) : null;
+			return t ? t.name || userProfiles[t.id]?.displayName || 'Unknown' : '';
+		})()
+	}
+	bombBreakdown={bombBreakdown}
+	onGameClick={(gameId) => {
+		scoreBreakdownTeamId = null;
+		openGameDetail(gameId);
+	}}
 />

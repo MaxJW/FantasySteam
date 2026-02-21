@@ -268,6 +268,88 @@ export function getScoringGameIds(picks: TeamPicks, delistedGames: string[] = []
 	return ids;
 }
 
+export interface ScoreBreakdownItem {
+	label: string;
+	gameId: string;
+	gameName: string;
+	score: number;
+	pickType: 'hitPick' | 'seasonalPick' | 'altPick';
+	phase?: DraftPhase;
+}
+
+export interface ScoreBreakdown {
+	items: ScoreBreakdownItem[];
+	bombAdjustment: number;
+	total: number;
+}
+
+export function getScoreBreakdown(
+	picks: TeamPicks,
+	games: Record<string, { name: string; score?: number | null }>,
+	delistedGames: string[],
+	bombAdjustment: number = 0
+): ScoreBreakdown {
+	const delistedSet = new Set(delistedGames);
+	const items: ScoreBreakdownItem[] = [];
+
+	if (picks.hitPick) {
+		const game = games[picks.hitPick];
+		const score = game?.score ?? 0;
+		items.push({
+			label: 'Hit',
+			gameId: picks.hitPick,
+			gameName: game?.name ?? 'Unknown',
+			score,
+			pickType: 'hitPick'
+		});
+	}
+
+	const phaseKeys: [keyof TeamPicks, DraftPhase][] = [
+		['winterPicks', 'winter'],
+		['summerPicks', 'summer'],
+		['fallPicks', 'fall']
+	];
+	let altIdx = 0;
+
+	for (const [key, phase] of phaseKeys) {
+		const phaseGames = (picks[key] as string[]) ?? [];
+		for (const gid of phaseGames) {
+			if (delistedSet.has(gid)) {
+				const alt = (picks.altPicks ?? [])[altIdx];
+				if (alt) {
+					const game = games[alt];
+					const score = game?.score ?? 0;
+					items.push({
+						label: `Alt (${PHASE_CONFIG[phase].label})`,
+						gameId: alt,
+						gameName: game?.name ?? 'Unknown',
+						score,
+						pickType: 'altPick',
+						phase
+					});
+				}
+				altIdx++;
+			} else {
+				const game = games[gid];
+				const score = game?.score ?? 0;
+				items.push({
+					label: PHASE_CONFIG[phase].label,
+					gameId: gid,
+					gameName: game?.name ?? 'Unknown',
+					score,
+					pickType: 'seasonalPick',
+					phase
+				});
+			}
+		}
+	}
+
+	const rawTotal = items.reduce((sum, i) => sum + i.score, 0);
+	const total = rawTotal + bombAdjustment;
+
+	return { items, bombAdjustment, total };
+}
+
 export interface Team {
 	name: string;
 	picks: TeamPicks;

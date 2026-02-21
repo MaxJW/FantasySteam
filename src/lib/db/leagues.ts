@@ -27,7 +27,9 @@ import {
 	getNextPhase,
 	getScoringGameIds,
 	getEffectiveCurrentPhase,
-	getSeasonEndDate
+	getSeasonEndDate,
+	isDraftWindowOpen,
+	isPastSeason
 } from './types';
 import { getGameHistory } from './games';
 
@@ -87,6 +89,23 @@ export async function getTeam(
 export async function getTeams(leagueId: string): Promise<(Team & { id: string })[]> {
 	const snap = await getDocs(collection(db, LEAGUES, leagueId, TEAMS));
 	return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Team & { id: string });
+}
+
+/** Returns human-readable status label for a league (e.g. "Drafting", "Scoring", "Completed"). */
+export function getLeagueStatusLabel(league: League | null): string {
+	if (!league) return '';
+	if (league.status === 'completed') {
+		return league.season && isPastSeason(league.season)
+			? `Season ${league.season} Complete`
+			: 'Completed';
+	}
+	if (league.status === 'draft') {
+		const phase = league.currentPhase ?? 'winter';
+		if (phase !== 'winter') return 'Scoring';
+		const open = league.season && isDraftWindowOpen(phase, league.season);
+		return open ? 'Drafting' : 'Pre-Season';
+	}
+	return 'Scoring';
 }
 
 // -----------------------------------------------------------------------
@@ -388,6 +407,259 @@ export async function getTeamScoresHistory(
 	}
 
 	return teamScoresByDate;
+}
+
+export interface BombDamageItem {
+	gameId: string;
+	gameName: string;
+	pickerTeamName: string;
+	damage: number;
+}
+
+/**
+ * Computes per-bomb damage breakdown for a team.
+ * Returns which games (other players' bomb picks) caused damage and how much each contributed.
+ */
+export async function getBombDamageBreakdown(
+	leagueId: string,
+	viewingTeamId: string,
+	teams: (Team & { id: string })[],
+	games: Record<string, { name: string }>,
+	seasonEndDate?: string
+): Promise<BombDamageItem[]> {
+	const numTeams = teams.length;
+	if (numTeams < 2) return [];
+
+	const scoringSnap = await getDocs(collection(db, LEAGUES, leagueId, 'scoring'));
+	const bombDamageBySource = new Map<string, { gameId: string; pickerTeamName: string; damage: number }>();
+
+	const bombGameIds = new Set<string>();
+	for (const t of teams) {
+		const bid = t.picks?.bombPick;
+		if (bid && t.id !== viewingTeamId) bombGameIds.add(bid);
+	}
+	if (bombGameIds.size === 0) return [];
+
+	const gameHistories = new Map<string, Map<string, number>>();
+	for (const gid of bombGameIds) {
+		try {
+			const history = await getGameHistory(gid);
+			const byDate = new Map<string, number>();
+			for (const h of history) {
+				if (h.date && (!seasonEndDate || h.date <= seasonEndDate)) {
+					byDate.set(h.date, h.dailyPoints ?? 0);
+				}
+			}
+			gameHistories.set(gid, byDate);
+		} catch {
+			// Game may not have history
+		}
+	}
+
+	const numOther = numTeams - 1;
+
+	for (const scoringDoc of scoringSnap.docs) {
+		const data = scoringDoc.data();
+		const dateKey = data.date ?? scoringDoc.id;
+		if (seasonEndDate && dateKey > seasonEndDate) continue;
+
+		const threshold = data.bombThreshold ?? 0;
+		if (threshold <= 0) continue;
+
+		for (const team of teams) {
+			if (team.id === viewingTeamId) continue;
+			const bombGameId = team.picks?.bombPick;
+			if (!bombGameId) continue;
+
+			const dailyPts = gameHistories.get(bombGameId)?.get(dateKey) ?? 0;
+			const damage = Math.max(0, threshold - dailyPts);
+			if (damage <= 0) continue;
+
+			const perPlayer = damage / numOther;
+			const key = `${team.id}:${bombGameId}`;
+			const existing = bombDamageBySource.get(key);
+			if (existing) {
+				existing.damage -= perPlayer;
+			} else {
+				bombDamageBySource.set(key, {
+					gameId: bombGameId,
+					pickerTeamName: team.name,
+					damage: -perPlayer
+				});
+			}
+		}
+	}
+
+	return Array.from(bombDamageBySource.values())
+		.filter((x) => x.damage < 0)
+		.map((x) => ({
+			gameId: x.gameId,
+			gameName: games[x.gameId]?.name ?? 'Unknown',
+			pickerTeamName: x.pickerTeamName,
+			damage: x.damage
+		}))
+		.sort((a, b) => a.damage - b.damage);
+}
+
+/**
+ * Computes bomb damage breakdown for all teams in one pass.
+ * Returns for each team the list of bombs (from other teams) that dealt damage to them.
+ */
+export async function getBombDamageBreakdownForAllTeams(
+	leagueId: string,
+	teams: (Team & { id: string })[],
+	games: Record<string, { name: string }>,
+	seasonEndDate?: string
+): Promise<Record<string, BombDamageItem[]>> {
+	const numTeams = teams.length;
+	if (numTeams < 2) return {};
+
+	const scoringSnap = await getDocs(collection(db, LEAGUES, leagueId, 'scoring'));
+	const bombDamageByTeamAndSource = new Map<
+		string,
+		Map<string, { gameId: string; pickerTeamName: string; damage: number }>
+	>();
+	teams.forEach((t) => bombDamageByTeamAndSource.set(t.id, new Map()));
+
+	const bombGameIds = new Set<string>();
+	for (const t of teams) {
+		const bid = t.picks?.bombPick;
+		if (bid) bombGameIds.add(bid);
+	}
+	if (bombGameIds.size === 0) return {};
+
+	const gameHistories = new Map<string, Map<string, number>>();
+	for (const gid of bombGameIds) {
+		try {
+			const history = await getGameHistory(gid);
+			const byDate = new Map<string, number>();
+			for (const h of history) {
+				if (h.date && (!seasonEndDate || h.date <= seasonEndDate)) {
+					byDate.set(h.date, h.dailyPoints ?? 0);
+				}
+			}
+			gameHistories.set(gid, byDate);
+		} catch {
+			// Game may not have history
+		}
+	}
+
+	const numOther = numTeams - 1;
+
+	for (const scoringDoc of scoringSnap.docs) {
+		const data = scoringDoc.data();
+		const dateKey = data.date ?? scoringDoc.id;
+		if (seasonEndDate && dateKey > seasonEndDate) continue;
+
+		const threshold = data.bombThreshold ?? 0;
+		if (threshold <= 0) continue;
+
+		for (const pickerTeam of teams) {
+			const bombGameId = pickerTeam.picks?.bombPick;
+			if (!bombGameId) continue;
+
+			const dailyPts = gameHistories.get(bombGameId)?.get(dateKey) ?? 0;
+			const damage = Math.max(0, threshold - dailyPts);
+			if (damage <= 0) continue;
+
+			const perPlayer = damage / numOther;
+			for (const victimTeam of teams) {
+				if (victimTeam.id === pickerTeam.id) continue;
+				const key = `${pickerTeam.id}:${bombGameId}`;
+				const victimMap = bombDamageByTeamAndSource.get(victimTeam.id)!;
+				const existing = victimMap.get(key);
+				if (existing) {
+					existing.damage -= perPlayer;
+				} else {
+					victimMap.set(key, {
+						gameId: bombGameId,
+						pickerTeamName: pickerTeam.name,
+						damage: -perPlayer
+					});
+				}
+			}
+		}
+	}
+
+	const result: Record<string, BombDamageItem[]> = {};
+	for (const team of teams) {
+		const items = Array.from(bombDamageByTeamAndSource.get(team.id)!.values())
+			.filter((x) => x.damage < 0)
+			.map((x) => ({
+				gameId: x.gameId,
+				gameName: games[x.gameId]?.name ?? 'Unknown',
+				pickerTeamName: x.pickerTeamName,
+				damage: x.damage
+			}))
+			.sort((a, b) => a.damage - b.damage);
+		result[team.id] = items;
+	}
+	return result;
+}
+
+/**
+ * Returns total damage dealt by each team's bomb pick to all other players.
+ * Map key is teamId, value is total damage dealt (positive number).
+ */
+export async function getBombDamageDealtForTeams(
+	leagueId: string,
+	teams: (Team & { id: string })[],
+	seasonEndDate?: string
+): Promise<Record<string, number>> {
+	const numTeams = teams.length;
+	if (numTeams < 2) return {};
+
+	const scoringSnap = await getDocs(collection(db, LEAGUES, leagueId, 'scoring'));
+	const bombGameIds = new Set<string>();
+	for (const t of teams) {
+		const bid = t.picks?.bombPick;
+		if (bid) bombGameIds.add(bid);
+	}
+	if (bombGameIds.size === 0) return {};
+
+	const gameHistories = new Map<string, Map<string, number>>();
+	for (const gid of bombGameIds) {
+		try {
+			const history = await getGameHistory(gid);
+			const byDate = new Map<string, number>();
+			for (const h of history) {
+				if (h.date && (!seasonEndDate || h.date <= seasonEndDate)) {
+					byDate.set(h.date, h.dailyPoints ?? 0);
+				}
+			}
+			gameHistories.set(gid, byDate);
+		} catch {
+			// Game may not have history
+		}
+	}
+
+	const numOther = numTeams - 1;
+	const damageDealtByTeam = new Map<string, number>();
+
+	for (const scoringDoc of scoringSnap.docs) {
+		const data = scoringDoc.data();
+		const dateKey = data.date ?? scoringDoc.id;
+		if (seasonEndDate && dateKey > seasonEndDate) continue;
+
+		const threshold = data.bombThreshold ?? 0;
+		if (threshold <= 0) continue;
+
+		for (const team of teams) {
+			const bombGameId = team.picks?.bombPick;
+			if (!bombGameId) continue;
+
+			const dailyPts = gameHistories.get(bombGameId)?.get(dateKey) ?? 0;
+			const damage = Math.max(0, threshold - dailyPts);
+			if (damage <= 0) continue;
+
+			// Total damage dealt = damage (split among numOther players)
+			const totalDealt = damage;
+			const existing = damageDealtByTeam.get(team.id) ?? 0;
+			damageDealtByTeam.set(team.id, existing + totalDealt);
+		}
+	}
+
+	return Object.fromEntries(damageDealtByTeam);
 }
 
 // -----------------------------------------------------------------------
