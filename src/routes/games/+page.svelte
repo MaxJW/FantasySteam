@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import { fly } from 'svelte/transition';
 	import type { GameListEntry } from '$lib/db';
 	import type { Game } from '$lib/db';
 	import type { GameListSortBy, GameListOrder } from '$lib/db';
@@ -40,7 +41,6 @@
 	type ViewMode = 'table' | 'grid';
 
 	const PAGE_SIZE = 24;
-	const HEADER_OFFSET = 64; // md:h-16 for sticky positioning
 
 	type SortOption = `${GameListSortBy}-${GameListOrder}`;
 	const SORT_OPTIONS: { value: SortOption; label: string }[] = [
@@ -83,12 +83,31 @@
 	let loadError = $state<string | null>(null);
 
 	let filtersCollapsed = $state(false);
-	let hasScrolledPastFilters = $state(false);
 	let filterSentinelRef = $state<HTMLDivElement | undefined>(undefined);
 	let expandedFilterBarRef = $state<HTMLDivElement | undefined>(undefined);
 	let collapsedFilterBarRef = $state<HTMLDivElement | undefined>(undefined);
+	let scrollY = $state(0);
 
 	const me = $derived(getCurrentUser());
+
+	function scrollToTop() {
+		const start = window.scrollY;
+		const startTime = performance.now();
+		const duration = Math.min(800, Math.max(400, start * 0.2));
+
+		function easeInOutCubic(t: number) {
+			return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+		}
+
+		function step(now: number) {
+			const elapsed = now - startTime;
+			const progress = Math.min(1, elapsed / duration);
+			const eased = easeInOutCubic(progress);
+			window.scrollTo(0, start * (1 - eased));
+			if (progress < 1) requestAnimationFrame(step);
+		}
+		requestAnimationFrame(step);
+	}
 
 	async function setFiltersCollapsed(collapsed: boolean) {
 		const beforeHeight = collapsed
@@ -299,38 +318,23 @@
 	$effect(() => {
 		const sentinel = filterSentinelRef;
 		if (!sentinel) return;
-
-		const updateFromPosition = (top: number, allowCollapse: boolean) => {
-			const past = top < HEADER_OFFSET;
-			hasScrolledPastFilters = past;
-			if (!past) {
-				filtersCollapsed = false; // Always expand when scrolled back to top
-			} else if (allowCollapse) {
-				filtersCollapsed = true; // Observer can collapse; scroll handler cannot (avoids overriding "Show filters")
-			}
-		};
-
 		const observer = new IntersectionObserver(
-			([e]) => e && updateFromPosition(e.boundingClientRect.top, true),
-			{ threshold: [0, 1] }
+			([e]) => {
+				if (!e) return;
+				// When sentinel scrolls out of view (fully into grid), collapse; when back in view, expand
+				filtersCollapsed = !e.isIntersecting;
+			},
+			{ threshold: 0, rootMargin: '-60px 0px 0px 0px' }
 		);
 		observer.observe(sentinel);
+		return () => observer.disconnect();
+	});
 
-		let rafId = 0;
-		const onScroll = () => {
-			rafId = requestAnimationFrame(() => {
-				rafId = 0;
-				updateFromPosition(sentinel.getBoundingClientRect().top, false);
-			});
-		};
+	$effect(() => {
+		const onScroll = () => (scrollY = window.scrollY);
 		window.addEventListener('scroll', onScroll, { passive: true });
-		updateFromPosition(sentinel.getBoundingClientRect().top, true);
-
-		return () => {
-			observer.disconnect();
-			window.removeEventListener('scroll', onScroll);
-			if (rafId) cancelAnimationFrame(rafId);
-		};
+		onScroll();
+		return () => window.removeEventListener('scroll', onScroll);
 	});
 </script>
 
@@ -339,7 +343,7 @@
 <div>
 	<h1 class="pb-2 text-3xl font-bold tracking-tight">Browse Games</h1>
 
-	<!-- Sticky filter bar: collapses into Show filters button on scroll -->
+	<!-- Sticky filter bar -->
 	<div class="sticky top-14 z-30 -mx-4 px-4 pt-3 pb-6 md:top-16">
 		{#if filtersCollapsed}
 			<!-- Collapsed: compact bar with Show filters button -->
@@ -364,18 +368,16 @@
 				bind:this={expandedFilterBarRef}
 				class="glass flex flex-col gap-4 rounded-xl p-4 transition-all duration-200 ease-out sm:p-3"
 			>
-				{#if hasScrolledPastFilters}
-					<Button
-						variant="ghost"
-						size="sm"
-						class="w-full justify-center gap-2 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
-						onclick={() => setFiltersCollapsed(true)}
-						aria-label="Hide filters"
-					>
-						<ChevronUp class="h-4 w-4" />
-						<span>Hide filters</span>
-					</Button>
-				{/if}
+				<Button
+					variant="ghost"
+					size="sm"
+					class="w-full justify-center gap-2 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
+					onclick={() => setFiltersCollapsed(true)}
+					aria-label="Hide filters"
+				>
+					<ChevronUp class="h-4 w-4" />
+					<span>Hide filters</span>
+				</Button>
 
 				<!-- Row 1: Search (full width, own line) -->
 				<div class="relative w-full min-w-0">
@@ -387,16 +389,17 @@
 					/>
 				</div>
 
-				<!-- Row 2: Year | Season | Genre | Hide released | Sort | View | Hide filters | Count -->
-				<div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+				<!-- Filters: stacked on mobile, row on desktop -->
+				<div class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+					<!-- 1. Year + Season (2 cols on mobile, inline on desktop) -->
 					<div
-						class="grid grid-cols-2 gap-3 sm:flex sm:grid-cols-none sm:flex-wrap sm:items-center"
+						class="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:grid-cols-none sm:flex-wrap sm:items-center"
 					>
-						<div class="flex items-center gap-2">
+						<div class="flex min-w-0 items-center gap-2">
 							<Calendar class="h-4 w-4 shrink-0 text-muted-foreground" />
 							<Select.Root bind:value={selectedYear} type="single">
 								<Select.Trigger
-									class="w-full min-w-0 border-white/[0.08] bg-white/[0.04] sm:w-[120px]"
+									class="min-w-0 flex-1 border-white/[0.08] bg-white/[0.04] sm:w-[120px] sm:flex-initial"
 								>
 									{selectedYear || 'Year'}
 								</Select.Trigger>
@@ -408,11 +411,11 @@
 							</Select.Root>
 						</div>
 
-						<div class="flex items-center gap-2">
+						<div class="flex min-w-0 items-center gap-2">
 							<Snowflake class="h-4 w-4 shrink-0 text-muted-foreground" />
 							<Select.Root bind:value={selectedSeason} type="single">
 								<Select.Trigger
-									class="w-full min-w-0 border-white/[0.08] bg-white/[0.04] sm:w-[130px]"
+									class="min-w-0 flex-1 border-white/[0.08] bg-white/[0.04] sm:w-[130px] sm:flex-initial"
 								>
 									{selectedSeason ? PHASE_CONFIG[selectedSeason].label : 'All seasons'}
 								</Select.Trigger>
@@ -428,26 +431,27 @@
 						</div>
 					</div>
 
-					<!-- Row 2: Genre + Hide released (dropdown-style checkbox) -->
-					<div class="flex min-w-0 flex-1 flex-wrap items-center gap-3 sm:flex-initial">
-						<div class="flex min-w-0 flex-1 items-center gap-2 sm:min-w-0 sm:flex-initial">
-							<Tags class="h-4 w-4 shrink-0 text-muted-foreground" />
-							<Select.Root bind:value={selectedGenres} type="multiple">
-								<Select.Trigger
-									class="w-full min-w-0 border-white/[0.08] bg-white/[0.04] sm:max-w-[180px] sm:min-w-[140px]"
-								>
-									{selectedGenres.length > 1
-										? `${selectedGenres.length} genres`
-										: (selectedGenres[0] ?? 'Genre')}
-								</Select.Trigger>
-								<Select.Content>
-									{#each genres as genre}
-										<Select.Item value={genre} label={genre}>{genre}</Select.Item>
-									{/each}
-								</Select.Content>
-							</Select.Root>
-						</div>
+					<!-- 2. Genre (full width on mobile) -->
+					<div class="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-initial">
+						<Tags class="h-4 w-4 shrink-0 text-muted-foreground" />
+						<Select.Root bind:value={selectedGenres} type="multiple">
+							<Select.Trigger
+								class="min-w-0 flex-1 border-white/[0.08] bg-white/[0.04] sm:max-w-[180px] sm:min-w-[140px] sm:flex-initial"
+							>
+								{selectedGenres.length > 1
+									? `${selectedGenres.length} genres`
+									: (selectedGenres[0] ?? 'Genre')}
+							</Select.Trigger>
+							<Select.Content>
+								{#each genres as genre}
+									<Select.Item value={genre} label={genre}>{genre}</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
+					</div>
 
+					<!-- 3. Hide released + Bookmarked (wrap on narrow screens) -->
+					<div class="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:flex-initial">
 						<button
 							type="button"
 							role="checkbox"
@@ -465,36 +469,36 @@
 									<Check class="h-2.5 w-2.5" />
 								{/if}
 							</span>
-							<span class="text-sm text-foreground">Hide released</span>
+							<span class="text-sm whitespace-nowrap text-foreground">Hide released</span>
 						</button>
-						{#if me}
-							<button
-								type="button"
-								role="checkbox"
-								aria-checked={bookmarkedOnly}
-								aria-label="Bookmarked only"
-								class="flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 transition-colors hover:bg-white/[0.06]"
-								onclick={() => (bookmarkedOnly = !bookmarkedOnly)}
+						<button
+							type="button"
+							role="checkbox"
+							aria-checked={bookmarkedOnly}
+							aria-label="Bookmarked only"
+							class="flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 transition-colors hover:bg-white/[0.06]"
+							onclick={() => (bookmarkedOnly = !bookmarkedOnly)}
+						>
+							<span
+								class="flex size-4 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] transition-colors {bookmarkedOnly
+									? 'border-primary bg-primary text-primary-foreground'
+									: ''}"
 							>
-								<span
-									class="flex size-4 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] transition-colors {bookmarkedOnly
-										? 'border-primary bg-primary text-primary-foreground'
-										: ''}"
-								>
-									{#if bookmarkedOnly}
-										<Check class="h-2.5 w-2.5" />
-									{/if}
-								</span>
-								<span class="text-sm text-foreground">Bookmarked only</span>
-							</button>
-						{/if}
+								{#if bookmarkedOnly}
+									<Check class="h-2.5 w-2.5" />
+								{/if}
+							</span>
+							<span class="text-sm whitespace-nowrap text-foreground">Bookmarked only</span>
+						</button>
 					</div>
 
-					<!-- Sort, View toggle, Count -->
-					<div class="flex shrink-0 flex-wrap items-center gap-3 sm:ml-auto">
-						<div class="flex items-center gap-2">
+					<!-- 4. Sort + View toggle + Count -->
+					<div class="flex w-full flex-wrap items-center gap-3 sm:ml-auto sm:w-auto">
+						<div class="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial">
 							<Select.Root bind:value={sortOption} type="single">
-								<Select.Trigger class="w-[150px] border-white/[0.08] bg-white/[0.04] sm:w-[170px]">
+								<Select.Trigger
+									class="min-w-0 flex-1 border-white/[0.08] bg-white/[0.04] sm:w-[170px] sm:flex-initial"
+								>
 									{sortLabel}
 								</Select.Trigger>
 								<Select.Content>
@@ -506,7 +510,7 @@
 						</div>
 
 						<div
-							class="flex items-center gap-0.5 rounded-lg border border-white/[0.08] bg-white/[0.04] p-0.5"
+							class="flex shrink-0 items-center gap-0.5 rounded-lg border border-white/[0.08] bg-white/[0.04] p-0.5"
 						>
 							<Button
 								variant={viewMode === 'table' ? 'secondary' : 'ghost'}
@@ -529,7 +533,7 @@
 						</div>
 
 						{#if totalCount > 0 && !loadingGames}
-							<span class="text-xs text-muted-foreground">{totalCount} games</span>
+							<span class="shrink-0 text-xs text-muted-foreground">{totalCount} games</span>
 						{/if}
 					</div>
 				</div>
@@ -537,8 +541,7 @@
 		{/if}
 	</div>
 
-	<!-- Sentinel before filter bar: taller for reliable detection with incremental scrolls -->
-	<div bind:this={filterSentinelRef} class="h-4 w-full" aria-hidden="true"></div>
+	<div bind:this={filterSentinelRef} class="h-px w-full" aria-hidden="true"></div>
 
 	{#if loadingYears || loadingGames}
 		<div
@@ -657,12 +660,12 @@
 		</div>
 	{:else}
 		<div
-			class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+			class="grid grid-cols-2 gap-2 min-[400px]:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
 		>
 			{#each games as game, i}
 				<button
 					type="button"
-					class="group relative aspect-[2/3] w-full animate-fade-in-up cursor-pointer overflow-hidden rounded-lg border border-white/[0.06] bg-white/[0.03] text-left transition-all hover:border-white/[0.15] hover:shadow-lg hover:shadow-primary/[0.05] focus:ring-2 focus:ring-ring focus:outline-none"
+					class="group relative aspect-[2/3] w-full animate-fade-in-up cursor-pointer overflow-hidden rounded-lg border border-white/6 bg-white/3 text-left transition-all hover:border-white/15 hover:shadow-lg hover:shadow-primary/5 focus:ring-2 focus:ring-ring focus:outline-none"
 					style="animation-delay: {Math.min(i * 0.02, 0.3)}s"
 					onclick={() => openGameDetail(game.id)}
 				>
@@ -688,7 +691,7 @@
 						</div>
 					{/if}
 					<div
-						class="absolute inset-x-0 bottom-0 flex min-h-[50%] flex-col justify-end bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-hover:opacity-100"
+						class="absolute inset-x-0 bottom-0 flex min-h-[50%] flex-col justify-end bg-linear-to-t from-black/90 via-black/40 to-transparent p-3 opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-hover:opacity-100"
 					>
 						<span class="line-clamp-2 text-sm font-medium text-white">{game.name}</span>
 						<span class="mt-0.5 text-[10px] text-white/70">{game.releaseDate ?? 'TBA'}</span>
@@ -712,6 +715,19 @@
 				{games.length} of {totalCount} games
 			</div>
 		{/if}
+	{/if}
+
+	{#if scrollY > 300}
+		<button
+			type="button"
+			aria-label="Back to top"
+			class="glass fixed right-6 bottom-24 z-30 flex size-12 cursor-pointer items-center justify-center rounded-full shadow-lg transition-transform duration-200 hover:scale-105 md:bottom-6"
+			onclick={scrollToTop}
+			in:fly={{ y: 8, duration: 200 }}
+			out:fly={{ y: 8, duration: 150 }}
+		>
+			<ChevronUp class="h-6 w-6 text-foreground" />
+		</button>
 	{/if}
 </div>
 

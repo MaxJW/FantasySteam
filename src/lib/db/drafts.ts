@@ -277,37 +277,3 @@ export async function submitPick(
 		await advancePhase(leagueId);
 	}
 }
-
-// -----------------------------------------------------------------------
-// Admin: skip
-// -----------------------------------------------------------------------
-
-export async function skipCurrentPick(leagueId: string, draftId: string): Promise<void> {
-	const dRef = draftRef(leagueId, draftId);
-	const league = await getLeague(leagueId);
-	const seasonalPicksCount = getSeasonalPicksForPlayerCount(league?.members?.length ?? 2);
-
-	await runTransaction(db, async (tx) => {
-		const draftSnap = await tx.get(dRef);
-		if (!draftSnap.exists()) return;
-
-		const draft = draftSnap.data() as Draft;
-		if (draft.status !== 'active' || !draft.currentPick) return;
-
-		const currentFlatIndex =
-			(draft.currentPick.round - 1) * draft.order.length + draft.currentPick.position;
-
-		const nextPick = calculateNextPick(
-			draft.order,
-			currentFlatIndex + 1,
-			draft.phase,
-			seasonalPicksCount
-		);
-
-		if (nextPick) {
-			tx.update(dRef, { currentPick: nextPick });
-		} else {
-			tx.update(dRef, { currentPick: null, status: 'completed' });
-		}
-	});
-}

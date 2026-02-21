@@ -36,10 +36,8 @@
 
 	function getPhaseProgress(league: League): number {
 		const phases = ['winter', 'summer', 'fall'] as const;
-		const idx = phases.indexOf(league.currentPhase);
 		if (league.status === 'completed') return 3;
-		if (league.status === 'draft') return 0;
-		return idx;
+		return phases.indexOf(league.currentPhase);
 	}
 </script>
 
