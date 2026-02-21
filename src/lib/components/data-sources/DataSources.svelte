@@ -3,8 +3,8 @@
 </script>
 
 <section class="glass overflow-hidden rounded-xl">
-	<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
-		<Database class="h-4 w-4 text-primary" />
+	<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
+		<Database class="size-4  text-primary" />
 		<h2 class="font-semibold">Data Sources</h2>
 	</div>
 	<div class="space-y-4 p-5">
@@ -13,7 +13,7 @@
 			metadata are attributed to their respective providers.
 		</p>
 		<div class="space-y-3">
-			<div class="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+			<div class="rounded-lg border border-white/6 bg-white/2 p-4">
 				<h3 class="font-semibold">
 					<a
 						href="https://www.igdb.com"
@@ -36,11 +36,11 @@
 						IGDB
 					</a>
 					. Cover images are served from
-					<code class="rounded bg-white/[0.04] px-1 py-0.5 text-xs">images.igdb.com</code>
+					<code class="rounded bg-white/4 px-1 py-0.5 text-xs">images.igdb.com</code>
 					.
 				</p>
 			</div>
-			<div class="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+			<div class="rounded-lg border border-white/6 bg-white/2 p-4">
 				<h3 class="font-semibold">
 					<a
 						href="https://store.steampowered.com"
@@ -64,7 +64,7 @@
 					for each title.
 				</p>
 			</div>
-			<div class="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+			<div class="rounded-lg border border-white/6 bg-white/2 p-4">
 				<h3 class="font-semibold">
 					<a
 						href="https://firebase.google.com"

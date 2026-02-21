@@ -667,8 +667,8 @@
 							{@const present = !waitingFor.includes(memberId)}
 							<div
 								class="flex items-center justify-between rounded-lg border px-3 py-2 transition-colors {present
-									? 'border-accent/30 bg-accent/[0.06]'
-									: 'border-white/[0.06] bg-white/[0.02]'}"
+									? 'border-accent/30 bg-accent/6'
+									: 'border-white/6 bg-white/2'}"
 							>
 								<span class="max-w-[110px] truncate text-sm font-medium">
 									{memberDisplayName(memberId) || '…'}
@@ -687,12 +687,12 @@
 		{:else}
 			<!-- Draft Board -->
 			<div
-				class="flex flex-1 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-card/30"
+				class="flex flex-1 flex-col overflow-hidden rounded-xl border border-white/6 bg-card/30"
 			>
 				<ScrollArea class="min-h-0 flex-1" orientation="both">
 					<!-- Column headers -->
 					<div
-						class="sticky top-0 z-10 flex min-w-max gap-2 border-b border-white/[0.06] p-2 backdrop-blur"
+						class="sticky top-0 z-10 flex min-w-max gap-2 border-b border-white/6 p-2 backdrop-blur"
 						style="background: oklch(0.15 0.03 250 / 0.9)"
 					>
 						<div class="flex w-16 shrink-0 items-center justify-center sm:w-20"></div>
@@ -701,8 +701,8 @@
 							{@const isCurrentPickColumn = currentPickUserId === memberId}
 							<div
 								class="flex min-w-[160px] flex-1 items-center justify-center gap-2 rounded-lg border px-2 py-2 transition-all sm:min-w-[180px] {isCurrentPickColumn
-									? 'glow-sm-primary border-primary/30 bg-primary/[0.08]'
-									: 'border-white/[0.06] bg-white/[0.03]'}"
+									? 'glow-sm-primary border-primary/30 bg-primary/8'
+									: 'border-white/6 bg-white/3'}"
 							>
 								<Avatar.Root class="h-7 w-7 shrink-0">
 									<Avatar.Fallback
@@ -750,12 +750,12 @@
 
 									<div
 										class="group relative min-h-[90px] min-w-[160px] flex-1 overflow-hidden rounded-lg border transition-all sm:min-h-[100px] sm:min-w-[180px]
-										{isActive ? 'animate-glow-pulse border-primary/50 ring-1 ring-primary/30' : 'border-white/[0.06]'}
+										{isActive ? 'animate-glow-pulse border-primary/50 ring-1 ring-primary/30' : 'border-white/6'}
 										{isCurrentPickColumn && !isActive
-											? 'bg-primary/[0.03]'
+											? 'bg-primary/3'
 											: hasPick
 												? 'bg-card/50'
-												: 'bg-white/[0.01]'}"
+												: 'bg-white/1'}"
 									>
 										{#if hasPick && data?.pick}
 											{@const config = pickConfig[data.pick.pickType] || {
@@ -766,7 +766,7 @@
 											{@const Icon = config.icon}
 											<div class="absolute inset-0 flex">
 												<div
-													class="flex w-1/3 flex-col items-center justify-center gap-1 border-r border-white/[0.06] bg-white/[0.02]"
+													class="flex w-1/3 flex-col items-center justify-center gap-1 border-r border-white/6 bg-white/2"
 												>
 													<Icon class="h-4 w-4 {config.color}" />
 													<span
@@ -784,7 +784,7 @@
 															class="absolute inset-0 h-full w-full object-cover"
 														/>
 														<div
-															class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"
+															class="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent"
 														></div>
 														<span
 															class="absolute right-1 bottom-1 left-1.5 line-clamp-2 text-[10px] leading-tight font-medium text-white"
@@ -840,7 +840,7 @@
 				? 'w-auto max-w-md sm:max-w-md'
 				: 'h-[90vh] w-[90vw] max-w-none sm:max-w-none'}"
 		>
-			<div class="border-b border-white/[0.06] p-5 pb-3">
+			<div class="border-b border-white/6 p-5 pb-3">
 				<Dialog.Title class="text-lg font-semibold">
 					{#if modalStep === 'type'}
 						Select Pick Type
@@ -858,7 +858,7 @@
 							modalStep = 'type';
 						}}
 					>
-						<ArrowLeft class="h-3 w-3" /> Back
+						<ArrowLeft class="size-3 " /> Back
 					</Button>
 				{/if}
 			</div>
@@ -872,7 +872,7 @@
 								{#if conf}
 									{@const Icon = conf.icon}
 									<button
-										class="group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-white/[0.06] bg-white/[0.02] p-5 transition-all {conf.borderHover}"
+										class="group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-white/6 bg-white/2 p-5 transition-all {conf.borderHover}"
 										onclick={() => selectType(type)}
 									>
 										<Icon class="size-9 {conf.color} transition-transform group-hover:scale-110" />
@@ -887,7 +887,7 @@
 					</div>
 				{:else if modalStep === 'game'}
 					<div class="flex min-h-0 flex-1 flex-col">
-						<div class="shrink-0 border-b border-white/[0.06] px-5 py-3">
+						<div class="shrink-0 border-b border-white/6 px-5 py-3">
 							<div class="relative">
 								<Search class="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
 								<Input
@@ -902,7 +902,7 @@
 									<Tags class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
 									<Select.Root bind:value={modalSelectedGenres} type="multiple">
 										<Select.Trigger
-											class="h-8 max-w-[140px] min-w-0 border-white/[0.08] bg-white/[0.04] text-xs"
+											class="h-8 max-w-[140px] min-w-0 border-white/8 bg-white/4 text-xs"
 										>
 											{modalSelectedGenres.length > 1
 												? `${modalSelectedGenres.length} genres`
@@ -921,11 +921,11 @@
 										role="checkbox"
 										aria-checked={modalBookmarkedOnly}
 										aria-label="Bookmarked only"
-										class="flex h-8 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 text-xs transition-colors hover:bg-white/[0.06]"
+										class="flex h-8 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-white/8 bg-white/4 px-3 text-xs transition-colors hover:bg-white/6"
 										onclick={() => (modalBookmarkedOnly = !modalBookmarkedOnly)}
 									>
 										<span
-											class="flex size-3.5 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] transition-colors {modalBookmarkedOnly
+											class="flex size-3.5 shrink-0 items-center justify-center rounded border border-white/8 bg-white/4 transition-colors {modalBookmarkedOnly
 												? 'border-primary bg-primary text-primary-foreground'
 												: ''}"
 										>
@@ -937,7 +937,7 @@
 									</button>
 								{/if}
 								<div
-									class="flex items-center gap-0.5 rounded-lg border border-white/[0.08] bg-white/[0.04] p-0.5"
+									class="flex items-center gap-0.5 rounded-lg border border-white/8 bg-white/4 p-0.5"
 								>
 									<Button
 										variant={modalViewMode === 'table' ? 'secondary' : 'ghost'}
@@ -980,7 +980,7 @@
 										<div class="grid grid-cols-1 gap-0.5">
 											{#each gameListAvailable as game}
 												<button
-													class="flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
+													class="flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/4"
 													onclick={() => openGameDetail(game.id)}
 												>
 													<span class="flex items-center gap-2 text-sm font-medium">
@@ -1002,7 +1002,7 @@
 											{#each gameListAvailable as game}
 												<button
 													type="button"
-													class="group relative aspect-[2/3] w-full cursor-pointer overflow-hidden rounded-lg border border-white/[0.06] bg-white/[0.03] text-left transition-all hover:border-white/[0.15] hover:shadow-lg hover:shadow-primary/[0.05] focus:ring-2 focus:ring-ring focus:outline-none"
+													class="group relative aspect-2/3 w-full cursor-pointer overflow-hidden rounded-lg border border-white/6 bg-white/3 text-left transition-all hover:border-white/15 hover:shadow-lg hover:shadow-primary/5 focus:ring-2 focus:ring-ring focus:outline-none"
 													onclick={() => openGameDetail(game.id)}
 												>
 													{#if game.coverUrl}
@@ -1030,7 +1030,7 @@
 														</div>
 													{/if}
 													<div
-														class="absolute inset-x-0 bottom-0 flex min-h-[50%] flex-col justify-end bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+														class="absolute inset-x-0 bottom-0 flex min-h-[50%] flex-col justify-end bg-linear-to-t from-black/90 via-black/40 to-transparent p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
 													>
 														<span class="line-clamp-2 text-sm font-medium text-white"
 															>{game.name}</span
@@ -1071,13 +1071,13 @@
 					>
 						{#snippet footer()}
 							<div
-								class="flex w-full items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.03] p-4"
+								class="flex w-full items-center justify-between rounded-lg border border-white/8 bg-white/3 p-4"
 							>
 								<div class="flex items-center gap-3">
 									{#if selectedPickType && pickConfig[selectedPickType]}
 										{@const conf = pickConfig[selectedPickType]}
 										{@const Icon = conf.icon}
-										<div class="rounded-full border border-white/[0.08] bg-white/[0.03] p-2">
+										<div class="rounded-full border border-white/8 bg-white/3 p-2">
 											<Icon class="h-5 w-5 {conf.color}" />
 										</div>
 										<div>

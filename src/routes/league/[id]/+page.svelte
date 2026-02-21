@@ -550,10 +550,10 @@
 <div class="space-y-6">
 	{#if loading}
 		<div class="space-y-4">
-			<div class="h-12 w-48 animate-pulse rounded-lg bg-white/[0.04]"></div>
+			<div class="h-12 w-48 animate-pulse rounded-lg bg-white/4"></div>
 			<div class="grid gap-4 sm:grid-cols-3">
 				{#each Array(3) as _}
-					<div class="h-32 animate-pulse rounded-xl bg-white/[0.04]"></div>
+					<div class="h-32 animate-pulse rounded-xl bg-white/4"></div>
 				{/each}
 			</div>
 		</div>
@@ -594,7 +594,7 @@
 				</div>
 				<div class="flex flex-wrap items-center gap-2">
 					<span class="text-sm text-muted-foreground">Season {league.season}</span>
-					<span class="rounded-md bg-white/[0.05] px-2 py-0.5 font-mono text-xs text-foreground"
+					<span class="rounded-md bg-white/5 px-2 py-0.5 font-mono text-xs text-foreground"
 						>{league.code}</span
 					>
 					<Badge
@@ -615,7 +615,7 @@
 			<!-- Winning Screen Hero -->
 			{@const winner = teamsSortedByScore[0]}
 			<div
-				class="overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/10 via-accent/5 to-transparent"
+				class="overflow-hidden rounded-2xl border border-accent/20 bg-linear-to-br from-accent/10 via-accent/5 to-transparent"
 			>
 				<div
 					class="flex flex-col items-center gap-4 px-6 py-10 text-center sm:flex-row sm:justify-center sm:gap-8 sm:text-left"
@@ -637,7 +637,7 @@
 								</p>
 								<button
 									type="button"
-									class="rounded p-1 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+									class="rounded p-1 text-muted-foreground transition-colors hover:bg-white/6 hover:text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
 									onclick={() => (scoreBreakdownTeamId = winner.id)}
 									title="Score breakdown"
 								>
@@ -674,24 +674,24 @@
 					{@const isWaitingForWindow = isCurrent && !canEnter && phaseLabel.startsWith('Opens')}
 					<div
 						class="relative overflow-hidden rounded-xl border transition-all {isWaitingForWindow
-							? 'border-amber-500/40 bg-amber-500/[0.04]'
+							? 'border-amber-500/40 bg-amber-500/4'
 							: isCurrent
-								? 'border-primary/40 bg-primary/[0.04]'
+								? 'border-primary/40 bg-primary/4'
 								: effectiveStatus === 'completed'
-									? 'border-accent/20 bg-accent/[0.03]'
+									? 'border-accent/20 bg-accent/3'
 									: phaseLabel === 'Loading'
-										? 'border-white/[0.06] bg-white/[0.02]'
+										? 'border-white/6 bg-white/2'
 										: phaseLabel === 'Skipped'
-											? 'border-white/[0.04] bg-white/[0.01] opacity-50'
-											: 'border-white/[0.06] bg-white/[0.02] opacity-60'}"
+											? 'border-white/4 bg-white/1 opacity-50'
+											: 'border-white/6 bg-white/2 opacity-60'}"
 					>
 						{#if isWaitingForWindow}
 							<div
-								class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-amber-500/60 via-amber-500 to-amber-500/60"
+								class="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-amber-500/60 via-amber-500 to-amber-500/60"
 							></div>
 						{:else if isCurrent}
 							<div
-								class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary to-primary/60"
+								class="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-primary/60 via-primary to-primary/60"
 							></div>
 						{:else if effectiveStatus === 'completed'}
 							<div class="absolute inset-x-0 top-0 h-0.5 bg-accent/40"></div>
@@ -772,7 +772,7 @@
 			<div
 				class="animate-fade-in-up overflow-hidden rounded-xl border border-primary/20 bg-card/60"
 			>
-				<div class="border-b border-white/[0.06] bg-white/[0.02] px-5 py-4">
+				<div class="border-b border-white/6 bg-white/2 px-5 py-4">
 					<h3 class="font-semibold">League Settings</h3>
 					<p class="text-sm text-muted-foreground">Manage picks per phase and league options.</p>
 				</div>
@@ -784,7 +784,7 @@
 								id="editSeason"
 								value={league.season}
 								readonly
-								class="w-28 bg-white/[0.03] font-mono read-only:cursor-default read-only:opacity-100"
+								class="w-28 bg-white/3 font-mono read-only:cursor-default read-only:opacity-100"
 							/>
 						</div>
 						<div class="space-y-2">
@@ -839,8 +839,8 @@
 		<div class="grid gap-6 lg:grid-cols-[1fr_320px]">
 			<div class="space-y-6">
 				<!-- Historical Score Graph -->
-				<div class="overflow-hidden rounded-xl border border-white/[0.06] bg-card/40">
-					<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+				<div class="overflow-hidden rounded-xl border border-white/6 bg-card/40">
+					<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 						<TrendingUp class="h-4 w-4 text-primary" />
 						<h2 class="font-semibold">
 							{isPastSeasonView ? 'Season score progression' : 'Score History'}
@@ -979,7 +979,7 @@
 
 							<!-- Tooltip details -->
 							{#if hoveredDateIdx !== null}
-								<div class="mt-2 rounded-lg border border-white/[0.06] bg-white/[0.03] px-4 py-2.5">
+								<div class="mt-2 rounded-lg border border-white/6 bg-white/3 px-4 py-2.5">
 									<p class="mb-1.5 text-xs font-medium text-muted-foreground">
 										{formatDate(data.dates[hoveredDateIdx])}
 									</p>
@@ -1035,7 +1035,7 @@
 					{:else}
 						{#each teamsSortedByScore as team, rank}
 							<div
-								class="overflow-hidden rounded-xl border border-white/[0.06] bg-card/40 transition-colors hover:border-white/[0.1]"
+								class="overflow-hidden rounded-xl border border-white/6 bg-card/40 transition-colors hover:border-white/10"
 							>
 								<div
 									role="button"
@@ -1074,7 +1074,7 @@
 										>
 										<button
 											type="button"
-											class="rounded p-1 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+											class="rounded p-1 text-muted-foreground transition-colors hover:bg-white/6 hover:text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
 											onclick={(e) => {
 												e.stopPropagation();
 												scoreBreakdownTeamId = team.id;
@@ -1093,7 +1093,7 @@
 								{#if expandedTeams.has(team.id)}
 									{@const hitGame = team.picks?.hitPick ? games[team.picks.hitPick] : null}
 									{@const bombsReceived = bombBreakdownByTeam[team.id] ?? []}
-									<div class="animate-fade-in-up space-y-4 border-t border-white/[0.06] px-4 py-4">
+									<div class="animate-fade-in-up space-y-4 border-t border-white/6 px-4 py-4">
 										<!-- Hit & Bombs received (from other teams) -->
 										{#if hitGame || bombsReceived.length > 0}
 											<div>
@@ -1197,7 +1197,7 @@
 			<div class="space-y-3">
 				{#if isPastSeasonView}
 					<h2 class="text-lg font-semibold">Season Summary</h2>
-					<div class="overflow-hidden rounded-xl border border-white/[0.06] bg-card/40 p-4">
+					<div class="overflow-hidden rounded-xl border border-white/6 bg-card/40 p-4">
 						<div class="space-y-2 text-sm text-muted-foreground">
 							<p>{teams.length} players competed in Season {league.season}.</p>
 							<p>
@@ -1217,7 +1217,7 @@
 					</div>
 				{:else}
 					<h2 class="text-lg font-semibold">Upcoming Releases</h2>
-					<div class="overflow-hidden rounded-xl border border-white/[0.06] bg-card/40">
+					<div class="overflow-hidden rounded-xl border border-white/6 bg-card/40">
 						<ScrollArea class="h-[calc(100vh-14rem)]">
 							<div class="space-y-1 p-2">
 								{#if upcomingGames.length === 0}
@@ -1240,7 +1240,7 @@
 										{#if teamsWithGame.length > 0}
 											<button
 												type="button"
-												class="flex w-full cursor-pointer items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors hover:bg-white/[0.04] focus:ring-2 focus:ring-ring focus:outline-none"
+												class="flex w-full cursor-pointer items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors hover:bg-white/4 focus:ring-2 focus:ring-ring focus:outline-none"
 												onclick={() => openGameDetail(game.id)}
 											>
 												{#if game.coverUrl}
@@ -1251,7 +1251,7 @@
 													/>
 												{:else}
 													<div
-														class="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-white/[0.04] text-[8px] text-muted-foreground"
+														class="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-white/4 text-[8px] text-muted-foreground"
 													>
 														N/A
 													</div>
@@ -1278,7 +1278,7 @@
 													<div class="mt-1 flex flex-wrap gap-1">
 														{#each teamsWithGame as t}
 															<span
-																class="rounded bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-muted-foreground"
+																class="rounded bg-white/6 px-1.5 py-0.5 text-[9px] text-muted-foreground"
 															>
 																{t.name || userProfiles[t.id]?.displayName}
 															</span>

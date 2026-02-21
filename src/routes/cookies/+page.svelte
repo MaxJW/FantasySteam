@@ -17,7 +17,7 @@
 	</div>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<Cookie class="h-4 w-4 text-primary" />
 			<h2 class="font-semibold">What Are Cookies?</h2>
 		</div>
@@ -30,7 +30,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">Cookies We Use</h2>
 		</div>
 		<div class="space-y-3 p-5">
@@ -47,7 +47,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">Third-Party Cookies</h2>
 		</div>
 		<div class="p-5">
@@ -67,7 +67,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">How to Manage Cookies</h2>
 		</div>
 		<div class="space-y-3 p-5">
@@ -91,7 +91,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">Contact</h2>
 		</div>
 		<div class="p-5">

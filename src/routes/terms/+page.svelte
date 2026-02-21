@@ -17,7 +17,7 @@
 	</div>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<FileText class="h-4 w-4 text-primary" />
 			<h2 class="font-semibold">1. Acceptance</h2>
 		</div>
@@ -30,7 +30,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">2. Use of Service</h2>
 		</div>
 		<div class="p-5">
@@ -43,7 +43,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">3. User Accounts</h2>
 		</div>
 		<div class="p-5">
@@ -55,7 +55,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">4. Acceptable Use</h2>
 		</div>
 		<div class="p-5">
@@ -68,7 +68,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">5. Intellectual Property</h2>
 		</div>
 		<div class="p-5">
@@ -82,7 +82,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">6. Disclaimer</h2>
 		</div>
 		<div class="p-5">
@@ -94,7 +94,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">7. Limitation of Liability</h2>
 		</div>
 		<div class="p-5">
@@ -106,7 +106,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">8. Termination</h2>
 		</div>
 		<div class="p-5">
@@ -119,7 +119,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">9. Governing Law</h2>
 		</div>
 		<div class="p-5">
@@ -131,7 +131,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">10. Changes</h2>
 		</div>
 		<div class="p-5">
@@ -144,7 +144,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">11. Contact</h2>
 		</div>
 		<div class="p-5">

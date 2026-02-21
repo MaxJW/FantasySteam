@@ -22,7 +22,7 @@
 		<Button
 			variant="ghost"
 			size="icon"
-			class="absolute top-0 right-0 z-10 h-8 w-8 shrink-0"
+			class="absolute top-0 right-0 z-10 size-8  shrink-0"
 			onclick={(e) => {
 				e.preventDefault();
 				e.stopPropagation();
@@ -31,7 +31,7 @@
 			aria-label={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
 		>
 			{#if isBookmarked}
-				<BookmarkCheck class="h-5 w-5 text-yellow-400" />
+				<BookmarkCheck class="size-5  text-yellow-400" />
 			{:else}
 				<Bookmark class="h-5 w-5 text-muted-foreground" />
 			{/if}
@@ -42,17 +42,17 @@
 			<img
 				src={game.coverUrl}
 				alt=""
-				class="h-36 w-24 shrink-0 rounded-lg object-cover shadow-lg ring-1 ring-white/[0.08]"
+				class="h-36 w-24 shrink-0 rounded-lg object-cover shadow-lg ring-1 ring-white/8"
 			/>
 		{:else}
 			<div
-				class="flex h-36 w-24 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] text-center text-xs text-muted-foreground ring-1 ring-white/[0.08]"
+				class="flex h-36 w-24 shrink-0 items-center justify-center rounded-lg bg-white/4 text-center text-xs text-muted-foreground ring-1 ring-white/8"
 			>
 				No cover
 			</div>
 		{/if}
 		<div class="min-w-0 flex-1 space-y-2.5">
-			<h3 class="text-lg leading-tight font-semibold tracking-tight">{game.name}</h3>
+			<h3 class="text-lg/tight  font-semibold tracking-tight">{game.name}</h3>
 			{#if game.companies?.length}
 				<p class="text-sm text-muted-foreground italic">
 					{game.companies.join(', ')}
@@ -90,9 +90,9 @@
 						href="https://store.steampowered.com/app/{game.steamAppId}"
 						target="_blank"
 						rel="noopener noreferrer"
-						class="inline-flex items-center gap-1.5 border-white/[0.08] text-xs"
+						class="inline-flex items-center gap-1.5 border-white/8 text-xs"
 					>
-						<ExternalLink class="h-3 w-3" />
+						<ExternalLink class="size-3 " />
 						Steam Store
 					</Button>
 				{/if}
@@ -103,8 +103,8 @@
 	{#if game.description}
 		<div class="space-y-2">
 			<h4 class="text-xs font-medium text-muted-foreground uppercase">Description</h4>
-			<ScrollArea class="max-h-40 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
-				<p class="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+			<ScrollArea class="max-h-40 rounded-lg border border-white/6 bg-white/2 p-4">
+				<p class="text-sm/relaxed  whitespace-pre-wrap text-muted-foreground">
 					{game.description}
 				</p>
 			</ScrollArea>
@@ -112,7 +112,7 @@
 	{/if}
 
 	{#if footer}
-		<div class="border-t border-white/[0.06] pt-4">
+		<div class="border-t border-white/6 pt-4">
 			{@render footer()}
 		</div>
 	{/if}

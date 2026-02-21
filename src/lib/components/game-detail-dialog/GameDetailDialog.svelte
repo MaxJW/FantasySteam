@@ -42,7 +42,7 @@
 				<div class="min-h-0 flex-1 overflow-y-auto px-5 pt-5">
 					<GameDetailContent {game} {isBookmarked} {onToggleBookmark} />
 				</div>
-				<div class="shrink-0 border-t border-white/[0.06] bg-white/[0.02] px-5 py-4">
+				<div class="shrink-0 border-t border-white/6 bg-white/2 px-5 py-4">
 					{@render footer()}
 				</div>
 			</div>
@@ -57,13 +57,13 @@
 {:else}
 	<Dialog.Root bind:open {onOpenChange}>
 		<Dialog.Content class="gap-0 overflow-hidden p-0 sm:max-w-2xl">
-			<div class="border-b border-white/[0.06] px-5 py-4">
+			<div class="border-b border-white/6 px-5 py-4">
 				<Dialog.Title class="text-lg font-semibold">{title}</Dialog.Title>
 			</div>
 			<div class="max-h-[70vh] overflow-y-auto px-5 py-5">
 				{#if loading}
 					<div class="flex min-h-[200px] items-center justify-center">
-						<LoaderCircle class="h-6 w-6 animate-spin text-primary" />
+						<LoaderCircle class="size-6  animate-spin text-primary" />
 					</div>
 				{:else if game}
 					<GameDetailContent {game} {footer} {isBookmarked} {onToggleBookmark} />

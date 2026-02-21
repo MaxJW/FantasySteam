@@ -73,7 +73,7 @@
 
 	<!-- Season -->
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<Calendar class="h-4 w-4 text-primary" />
 			<h2 class="font-semibold">The Season</h2>
 		</div>
@@ -87,14 +87,14 @@
 				{#each phases as { phase, label, draftOpens, window, isCurrent, Icon }}
 					<div
 						class="rounded-lg border p-4 transition-colors {isCurrent
-							? 'border-primary/40 bg-primary/[0.06]'
-							: 'border-white/[0.06] bg-white/[0.02]'}"
+							? 'border-primary/40 bg-primary/6'
+							: 'border-white/6 bg-white/2'}"
 					>
 						<div class="flex items-center gap-2">
 							<div
 								class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md {isCurrent
 									? 'bg-primary/20'
-									: 'bg-white/[0.04]'}"
+									: 'bg-white/4'}"
 							>
 								<Icon class="h-4 w-4 {isCurrent ? 'text-primary' : 'text-muted-foreground'}" />
 							</div>
@@ -117,7 +117,7 @@
 
 	<!-- Pick Types -->
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<Users class="h-4 w-4 text-primary" />
 			<h2 class="font-semibold">Pick Types</h2>
 		</div>
@@ -128,7 +128,7 @@
 			<div class="space-y-3">
 				{#each [{ icon: Snowflake, color: 'text-sky-400', bg: 'bg-sky-400/10', border: 'border-sky-400/20', label: 'Seasonal Picks', desc: "Your core picks. Choose games releasing within the current phase's window. These earn points based on real-world Steam performance.", badge: 'All 3 drafts' }, { icon: Target, color: 'text-accent', bg: 'bg-accent/10', border: 'border-accent/20', label: 'Hit Pick', desc: 'Your GOTY prediction. Pick any unreleased game from the entire year that you think will be the best performer.', badge: 'First draft only' }, { icon: Bomb, color: 'text-destructive', bg: 'bg-destructive/10', border: 'border-destructive/20', label: 'Bomb Pick', desc: 'Pick a game you think will flop. If it underperforms relative to other games, the damage is distributed equally among all other players, reducing their scores.', badge: 'First draft only' }, { icon: Shuffle, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20', label: 'Alt Pick', desc: 'A backup pick that activates if one of your seasonal picks gets delisted from Steam (e.g., pulled to become an Epic exclusive).', badge: 'All 3 drafts' }] as pick}
 					{@const Icon = pick.icon}
-					<div class="flex gap-4 rounded-lg border {pick.border} bg-white/[0.01] p-4">
+					<div class="flex gap-4 rounded-lg border {pick.border} bg-white/1 p-4">
 						<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg {pick.bg}">
 							<Icon class="h-5 w-5 {pick.color}" />
 						</div>
@@ -145,7 +145,7 @@
 
 	<!-- Scoring -->
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<Trophy class="h-4 w-4 text-primary" />
 			<h2 class="font-semibold">Scoring</h2>
 		</div>
@@ -156,8 +156,8 @@
 				the most accurate data.
 			</p>
 
-			<div class="overflow-hidden rounded-lg border border-white/[0.06]">
-				<div class="border-b border-white/[0.06] bg-white/[0.02] px-4 py-2.5">
+			<div class="overflow-hidden rounded-lg border border-white/6">
+				<div class="border-b border-white/6 bg-white/2 px-4 py-2.5">
 					<h4 class="text-sm font-semibold">Daily Points Formula</h4>
 				</div>
 				<div class="space-y-2 p-4">
@@ -167,30 +167,30 @@
 					</p>
 					<div class="flex items-center justify-between text-sm">
 						<span class="text-muted-foreground">Sales Score</span>
-						<code class="rounded bg-white/[0.04] px-2 py-0.5 font-mono text-xs text-foreground"
+						<code class="rounded bg-white/4 px-2 py-0.5 font-mono text-xs text-foreground"
 							>sqrt(new copies) &times; 0.2</code
 						>
 					</div>
 					<div class="flex items-center justify-between text-sm">
 						<span class="text-muted-foreground">Player Score</span>
-						<code class="rounded bg-white/[0.04] px-2 py-0.5 font-mono text-xs text-foreground"
+						<code class="rounded bg-white/4 px-2 py-0.5 font-mono text-xs text-foreground"
 							>sqrt(peak CCU) &times; 0.15</code
 						>
 					</div>
 					<div class="flex items-center justify-between text-sm">
 						<span class="text-muted-foreground">Review Score</span>
-						<code class="rounded bg-white/[0.04] px-2 py-0.5 font-mono text-xs text-foreground"
+						<code class="rounded bg-white/4 px-2 py-0.5 font-mono text-xs text-foreground"
 							>sqrt(reviews) &times; ratio &times; 0.8</code
 						>
 					</div>
 				</div>
 			</div>
 
-			<div class="overflow-hidden rounded-lg border border-white/[0.06]">
-				<div class="border-b border-white/[0.06] bg-white/[0.02] px-4 py-2.5">
+			<div class="overflow-hidden rounded-lg border border-white/6">
+				<div class="border-b border-white/6 bg-white/2 px-4 py-2.5">
 					<h4 class="text-sm font-semibold">Time Multiplier</h4>
 				</div>
-				<div class="divide-y divide-white/[0.04]">
+				<div class="divide-y divide-white/4">
 					{#each [{ period: 'Days 0-14 (Launch Hype)', mult: '2.0x' }, { period: 'Days 15-90 (The Season)', mult: '1.0x' }, { period: 'Days 91-180 (Long Tail)', mult: '0.75x' }, { period: 'Days 181+ (Legacy)', mult: '0.5x' }] as row}
 						<div class="flex items-center justify-between px-4 py-2.5 text-sm">
 							<span class="text-muted-foreground">{row.period}</span>
@@ -203,9 +203,9 @@
 			<Separator class="opacity-20" />
 
 			<!-- Milestones -->
-			<div class="overflow-hidden rounded-lg border border-yellow-500/20 bg-yellow-500/[0.03]">
+			<div class="overflow-hidden rounded-lg border border-yellow-500/20 bg-yellow-500/3">
 				<div
-					class="flex items-center gap-2 border-b border-yellow-500/10 bg-yellow-500/[0.04] px-4 py-2.5"
+					class="flex items-center gap-2 border-b border-yellow-500/10 bg-yellow-500/4 px-4 py-2.5"
 				>
 					<Star class="h-4 w-4 text-yellow-400" />
 					<h4 class="text-sm font-semibold">Milestone Bonuses</h4>
@@ -224,9 +224,9 @@
 			</div>
 
 			<!-- Breakout -->
-			<div class="overflow-hidden rounded-lg border border-emerald-500/20 bg-emerald-500/[0.03]">
+			<div class="overflow-hidden rounded-lg border border-emerald-500/20 bg-emerald-500/3">
 				<div
-					class="flex items-center gap-2 border-b border-emerald-500/10 bg-emerald-500/[0.04] px-4 py-2.5"
+					class="flex items-center gap-2 border-b border-emerald-500/10 bg-emerald-500/4 px-4 py-2.5"
 				>
 					<TrendingUp class="h-4 w-4 text-emerald-400" />
 					<h4 class="text-sm font-semibold">Breakout Bonus</h4>
@@ -242,7 +242,7 @@
 			</div>
 
 			<!-- Bomb -->
-			<div class="rounded-lg border border-destructive/20 bg-destructive/[0.04] p-4">
+			<div class="rounded-lg border border-destructive/20 bg-destructive/4 p-4">
 				<h4 class="text-sm font-semibold text-destructive">Bomb Damage</h4>
 				<p class="mt-1 text-sm text-muted-foreground">
 					Each day, the bomb threshold is set at the <strong class="text-foreground"
@@ -269,7 +269,7 @@
 
 	<!-- Bookmarks -->
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<Bookmark class="h-4 w-4 text-primary" />
 			<h2 class="font-semibold">Bookmarks</h2>
 		</div>
@@ -284,7 +284,7 @@
 
 	<!-- Quick Start -->
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<Zap class="h-4 w-4 text-primary" />
 			<h2 class="font-semibold">Quick Start</h2>
 		</div>

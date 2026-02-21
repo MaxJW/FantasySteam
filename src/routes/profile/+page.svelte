@@ -22,7 +22,7 @@
 	{#if user}
 		<div class="glass overflow-hidden rounded-xl">
 			<!-- Banner gradient -->
-			<div class="h-20 bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10"></div>
+			<div class="h-20 bg-linear-to-br from-primary/20 via-primary/10 to-accent/10"></div>
 
 			<div class="-mt-10 flex flex-col items-center pb-6">
 				<div
@@ -44,7 +44,7 @@
 				<div class="mt-4 w-full space-y-2 px-6">
 					{#if user.email}
 						<div
-							class="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-3"
+							class="flex items-center gap-3 rounded-lg border border-white/6 bg-white/2 px-4 py-3"
 						>
 							<Mail class="h-4 w-4 text-muted-foreground" />
 							<div class="min-w-0 flex-1">
@@ -54,7 +54,7 @@
 						</div>
 					{/if}
 					<div
-						class="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-3"
+						class="flex items-center gap-3 rounded-lg border border-white/6 bg-white/2 px-4 py-3"
 					>
 						<User class="h-4 w-4 text-muted-foreground" />
 						<div class="min-w-0 flex-1">
@@ -67,7 +67,7 @@
 				<div class="mt-6 w-full px-6">
 					<Button
 						variant="outline"
-						class="w-full gap-2 border-white/[0.08]"
+						class="w-full gap-2 border-white/8"
 						onclick={() => signOut()}
 					>
 						<LogOut class="h-4 w-4" /> Sign out
@@ -79,42 +79,42 @@
 		<!-- Legal links (mobile only — footer is hidden by bottom bar) -->
 		<nav class="md:hidden" aria-label="Legal and info">
 			<div class="glass overflow-hidden rounded-xl">
-				<div class="border-b border-white/[0.06] px-5 py-3">
+				<div class="border-b border-white/6 px-5 py-3">
 					<h2 class="font-semibold">Legal & Info</h2>
 				</div>
-				<ul class="divide-y divide-white/[0.06] p-2">
+				<ul class="divide-y divide-white/6 p-2">
 					<li>
 						<a
 							href="/about"
-							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground"
+							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/4 hover:text-foreground"
 							>About</a
 						>
 					</li>
 					<li>
 						<a
 							href="/contact"
-							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground"
+							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/4 hover:text-foreground"
 							>Contact</a
 						>
 					</li>
 					<li>
 						<a
 							href="/terms"
-							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground"
+							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/4 hover:text-foreground"
 							>Terms of Service</a
 						>
 					</li>
 					<li>
 						<a
 							href="/privacy"
-							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground"
+							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/4 hover:text-foreground"
 							>Privacy Policy</a
 						>
 					</li>
 					<li>
 						<a
 							href="/cookies"
-							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground"
+							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/4 hover:text-foreground"
 							>Cookie Policy</a
 						>
 					</li>

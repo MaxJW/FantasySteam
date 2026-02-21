@@ -18,7 +18,7 @@
 	</div>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<Shield class="h-4 w-4 text-primary" />
 			<h2 class="font-semibold">Data Controller</h2>
 		</div>
@@ -33,7 +33,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">Lawful Basis for Processing</h2>
 		</div>
 		<div class="p-5">
@@ -46,7 +46,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">What Data We Collect</h2>
 		</div>
 		<div class="space-y-3 p-5">
@@ -63,7 +63,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">How We Use Your Data</h2>
 		</div>
 		<div class="p-5">
@@ -75,7 +75,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">Third Parties</h2>
 		</div>
 		<div class="space-y-3 p-5">
@@ -101,7 +101,7 @@
 	<DataSources />
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">Data Retention</h2>
 		</div>
 		<div class="p-5">
@@ -114,7 +114,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">Your UK GDPR Rights</h2>
 		</div>
 		<div class="space-y-2 p-5">
@@ -156,7 +156,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">International Transfers</h2>
 		</div>
 		<div class="p-5">
@@ -176,7 +176,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">Cookies</h2>
 		</div>
 		<div class="p-5">
@@ -188,7 +188,7 @@
 	</section>
 
 	<section class="glass overflow-hidden rounded-xl">
-		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
 			<h2 class="font-semibold">Contact</h2>
 		</div>
 		<div class="p-5">

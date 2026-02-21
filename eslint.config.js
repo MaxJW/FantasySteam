@@ -2,8 +2,8 @@ import prettier from 'eslint-config-prettier';
 import path from 'node:path';
 import { includeIgnoreFile } from '@eslint/compat';
 import js from '@eslint/js';
-import svelte from 'eslint-plugin-svelte';
 import betterTailwind from 'eslint-plugin-better-tailwindcss';
+import svelte from 'eslint-plugin-svelte';
 import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 import ts from 'typescript-eslint';
@@ -34,10 +34,10 @@ export default defineConfig(
 					varsIgnorePattern: '^_'
 				}
 			],
-			// Suggest canonical Tailwind classes (e.g. grow instead of flex-grow)
+			// Tailwind: suggest canonical classes (e.g. grow instead of flex-grow)
 			'better-tailwindcss/enforce-canonical-classes': [
 				'error',
-				{ entryPoint: 'src/routes/layout.css' }
+				{ entryPoint: './src/routes/layout.css' }
 			]
 		}
 	},

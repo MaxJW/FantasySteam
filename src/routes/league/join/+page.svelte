@@ -52,8 +52,8 @@
 	</div>
 
 	<div class="glass overflow-hidden rounded-xl">
-		<div class="h-1 w-full bg-gradient-to-r from-primary/60 via-primary/30 to-transparent"></div>
-		<div class="flex flex-col items-center gap-3 border-b border-white/[0.06] p-6">
+		<div class="h-1 w-full bg-linear-to-r from-primary/60 via-primary/30 to-transparent"></div>
+		<div class="flex flex-col items-center gap-3 border-b border-white/6 p-6">
 			<div class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
 				<Users class="h-6 w-6 text-primary" />
 			</div>
@@ -72,7 +72,7 @@
 						id="studioName"
 						bind:value={studioName}
 						placeholder="e.g. John's Studio"
-						class="h-10 border-white/[0.08] bg-white/[0.03]"
+						class="h-10 border-white/8 bg-white/3"
 					/>
 				</div>
 				<div class="space-y-2">
@@ -82,7 +82,7 @@
 						bind:value={code}
 						required
 						placeholder="e.g. STEAM26"
-						class="h-12 border-white/[0.08] bg-white/[0.03] text-center text-lg tracking-[0.2em] uppercase"
+						class="h-12 border-white/8 bg-white/3 text-center text-lg tracking-[0.2em] uppercase"
 					/>
 				</div>
 				{#if error}
@@ -93,7 +93,7 @@
 					</div>
 				{/if}
 			</div>
-			<div class="flex flex-col gap-2 border-t border-white/[0.06] bg-white/[0.02] p-5">
+			<div class="flex flex-col gap-2 border-t border-white/6 bg-white/2 p-5">
 				<Button type="submit" class="glow-sm-primary w-full" disabled={loading}>
 					{loading ? 'Joining...' : 'Join League'}
 				</Button>

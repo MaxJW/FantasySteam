@@ -354,7 +354,7 @@
 				<Button
 					variant="ghost"
 					size="sm"
-					class="w-full justify-center gap-2 text-foreground hover:bg-white/[0.06]"
+					class="w-full justify-center gap-2 text-foreground hover:bg-white/6"
 					onclick={() => setFiltersCollapsed(false)}
 					aria-label="Show filters"
 				>
@@ -371,7 +371,7 @@
 				<Button
 					variant="ghost"
 					size="sm"
-					class="w-full justify-center gap-2 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
+					class="w-full justify-center gap-2 text-muted-foreground hover:bg-white/6 hover:text-foreground"
 					onclick={() => setFiltersCollapsed(true)}
 					aria-label="Hide filters"
 				>
@@ -384,7 +384,7 @@
 					<Search class="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
 					<Input
 						placeholder="Search games..."
-						class="border-white/[0.08] bg-white/[0.04] pl-9"
+						class="border-white/8 bg-white/4 pl-9"
 						bind:value={searchQuery}
 					/>
 				</div>
@@ -399,7 +399,7 @@
 							<Calendar class="h-4 w-4 shrink-0 text-muted-foreground" />
 							<Select.Root bind:value={selectedYear} type="single">
 								<Select.Trigger
-									class="min-w-0 flex-1 border-white/[0.08] bg-white/[0.04] sm:w-[120px] sm:flex-initial"
+									class="min-w-0 flex-1 border-white/8 bg-white/4 sm:w-[120px] sm:flex-initial"
 								>
 									{selectedYear || 'Year'}
 								</Select.Trigger>
@@ -415,7 +415,7 @@
 							<Snowflake class="h-4 w-4 shrink-0 text-muted-foreground" />
 							<Select.Root bind:value={selectedSeason} type="single">
 								<Select.Trigger
-									class="min-w-0 flex-1 border-white/[0.08] bg-white/[0.04] sm:w-[130px] sm:flex-initial"
+									class="min-w-0 flex-1 border-white/8 bg-white/4 sm:w-[130px] sm:flex-initial"
 								>
 									{selectedSeason ? PHASE_CONFIG[selectedSeason].label : 'All seasons'}
 								</Select.Trigger>
@@ -436,7 +436,7 @@
 						<Tags class="h-4 w-4 shrink-0 text-muted-foreground" />
 						<Select.Root bind:value={selectedGenres} type="multiple">
 							<Select.Trigger
-								class="min-w-0 flex-1 border-white/[0.08] bg-white/[0.04] sm:max-w-[180px] sm:min-w-[140px] sm:flex-initial"
+								class="min-w-0 flex-1 border-white/8 bg-white/4 sm:max-w-[180px] sm:min-w-[140px] sm:flex-initial"
 							>
 								{selectedGenres.length > 1
 									? `${selectedGenres.length} genres`
@@ -457,11 +457,11 @@
 							role="checkbox"
 							aria-checked={hideReleased}
 							aria-label="Hide released"
-							class="flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 transition-colors hover:bg-white/[0.06]"
+							class="flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-white/8 bg-white/4 px-3 transition-colors hover:bg-white/6"
 							onclick={() => (hideReleased = !hideReleased)}
 						>
 							<span
-								class="flex size-4 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] transition-colors {hideReleased
+								class="flex size-4 shrink-0 items-center justify-center rounded border border-white/8 bg-white/4 transition-colors {hideReleased
 									? 'border-primary bg-primary text-primary-foreground'
 									: ''}"
 							>
@@ -476,11 +476,11 @@
 							role="checkbox"
 							aria-checked={bookmarkedOnly}
 							aria-label="Bookmarked only"
-							class="flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 transition-colors hover:bg-white/[0.06]"
+							class="flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-white/8 bg-white/4 px-3 transition-colors hover:bg-white/6"
 							onclick={() => (bookmarkedOnly = !bookmarkedOnly)}
 						>
 							<span
-								class="flex size-4 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] transition-colors {bookmarkedOnly
+								class="flex size-4 shrink-0 items-center justify-center rounded border border-white/8 bg-white/4 transition-colors {bookmarkedOnly
 									? 'border-primary bg-primary text-primary-foreground'
 									: ''}"
 							>
@@ -497,7 +497,7 @@
 						<div class="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial">
 							<Select.Root bind:value={sortOption} type="single">
 								<Select.Trigger
-									class="min-w-0 flex-1 border-white/[0.08] bg-white/[0.04] sm:w-[170px] sm:flex-initial"
+									class="min-w-0 flex-1 border-white/8 bg-white/4 sm:w-[170px] sm:flex-initial"
 								>
 									{sortLabel}
 								</Select.Trigger>
@@ -510,12 +510,12 @@
 						</div>
 
 						<div
-							class="flex shrink-0 items-center gap-0.5 rounded-lg border border-white/[0.08] bg-white/[0.04] p-0.5"
+							class="flex shrink-0 items-center gap-0.5 rounded-lg border border-white/8 bg-white/4 p-0.5"
 						>
 							<Button
 								variant={viewMode === 'table' ? 'secondary' : 'ghost'}
 								size="icon"
-								class="h-7 w-7"
+								class="size-7 "
 								onclick={() => (viewMode = 'table')}
 								aria-label="Table view"
 							>
@@ -524,7 +524,7 @@
 							<Button
 								variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
 								size="icon"
-								class="h-7 w-7"
+								class="size-7 "
 								onclick={() => (viewMode = 'grid')}
 								aria-label="Grid view"
 							>
@@ -549,7 +549,7 @@
 		>
 			{#each Array(12) as _, i}
 				<div
-					class="aspect-[2/3] animate-fade-in-up rounded-lg bg-white/[0.04]"
+					class="aspect-2/3 animate-fade-in-up rounded-lg bg-white/4"
 					style="animation-delay: {i * 0.03}s"
 				></div>
 			{/each}
@@ -576,10 +576,10 @@
 					: ` for ${selectedYear}`}.
 		</div>
 	{:else if viewMode === 'table'}
-		<div class="max-w-full overflow-x-auto rounded-xl border border-white/[0.06]">
+		<div class="max-w-full overflow-x-auto rounded-xl border border-white/6">
 			<Table.Root class="w-full min-w-0 table-fixed">
 				<Table.Header>
-					<Table.Row class="border-white/[0.06] hover:bg-transparent">
+					<Table.Row class="border-white/6 hover:bg-transparent">
 						<Table.Head class="w-[120px]">
 							<button
 								type="button"
@@ -588,11 +588,11 @@
 							>
 								Date
 								{#if sortBy === 'date'}
-									{#if order === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown
-											class="h-3 w-3"
+									{#if order === 'asc'}<ArrowUp class="size-3 " />{:else}<ArrowDown
+											class="size-3 "
 										/>{/if}
 								{:else}
-									<ArrowUpDown class="h-3 w-3 opacity-40" />
+									<ArrowUpDown class="size-3  opacity-40" />
 								{/if}
 							</button>
 						</Table.Head>
@@ -604,11 +604,11 @@
 							>
 								Game Name
 								{#if sortBy === 'name'}
-									{#if order === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown
-											class="h-3 w-3"
+									{#if order === 'asc'}<ArrowUp class="size-3 " />{:else}<ArrowDown
+											class="size-3 "
 										/>{/if}
 								{:else}
-									<ArrowUpDown class="h-3 w-3 opacity-40" />
+									<ArrowUpDown class="size-3  opacity-40" />
 								{/if}
 							</button>
 						</Table.Head>
@@ -620,11 +620,11 @@
 							>
 								Score
 								{#if sortBy === 'score'}
-									{#if order === 'asc'}<ArrowUp class="h-3 w-3" />{:else}<ArrowDown
-											class="h-3 w-3"
+									{#if order === 'asc'}<ArrowUp class="size-3 " />{:else}<ArrowDown
+											class="size-3 "
 										/>{/if}
 								{:else}
-									<ArrowUpDown class="h-3 w-3 opacity-40" />
+									<ArrowUpDown class="size-3  opacity-40" />
 								{/if}
 							</button>
 						</Table.Head>
@@ -635,7 +635,7 @@
 						<Table.Row
 							role="button"
 							tabindex={0}
-							class="cursor-pointer border-white/[0.04] transition-colors hover:bg-white/[0.03]"
+							class="cursor-pointer border-white/4 transition-colors hover:bg-white/3"
 							onclick={() => openGameDetail(game.id)}
 							onkeydown={(e) => e.key === 'Enter' && openGameDetail(game.id)}
 						>
@@ -665,7 +665,7 @@
 			{#each games as game, i}
 				<button
 					type="button"
-					class="group relative aspect-[2/3] w-full animate-fade-in-up cursor-pointer overflow-hidden rounded-lg border border-white/6 bg-white/3 text-left transition-all hover:border-white/15 hover:shadow-lg hover:shadow-primary/5 focus:ring-2 focus:ring-ring focus:outline-none"
+					class="group relative aspect-2/3 w-full animate-fade-in-up cursor-pointer overflow-hidden rounded-lg border border-white/6 bg-white/3 text-left transition-all hover:border-white/15 hover:shadow-lg hover:shadow-primary/5 focus:ring-2 focus:ring-ring focus:outline-none"
 					style="animation-delay: {Math.min(i * 0.02, 0.3)}s"
 					onclick={() => openGameDetail(game.id)}
 				>

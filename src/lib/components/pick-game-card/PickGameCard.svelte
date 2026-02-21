@@ -102,9 +102,9 @@
 	{onclick}
 >
 	{#if game.coverUrl}
-		<img src={game.coverUrl} alt={game.name} class="aspect-[3/4] w-full object-cover" />
+		<img src={game.coverUrl} alt={game.name} class="aspect-3/4 w-full object-cover" />
 	{:else}
-		<div class="flex aspect-[3/4] w-full items-center justify-center bg-muted">
+		<div class="flex aspect-3/4 w-full items-center justify-center bg-muted">
 			<span class="px-1 text-center text-[9px] text-muted-foreground">{game.name}</span>
 		</div>
 	{/if}

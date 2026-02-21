@@ -104,7 +104,7 @@
 
 <Dialog.Root {open} {onOpenChange}>
 	<Dialog.Content class="gap-0 overflow-hidden p-0 sm:max-w-md">
-		<div class="border-b border-white/[0.06] px-5 py-4">
+		<div class="border-b border-white/6 px-5 py-4">
 			<Dialog.Title class="text-lg font-semibold">Score breakdown</Dialog.Title>
 			<Dialog.Description class="mt-0.5 text-sm text-muted-foreground">
 				{displayName}
@@ -131,7 +131,7 @@
 								{#each group.items as item}
 									<button
 										type="button"
-										class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-white/[0.04] focus:ring-2 focus:ring-ring focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+										class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-white/4 focus:ring-2 focus:ring-ring focus:outline-none disabled:pointer-events-none disabled:opacity-50"
 										onclick={() => onGameClick?.(item.gameId)}
 										disabled={!onGameClick}
 									>
@@ -148,7 +148,7 @@
 								{/each}
 							</div>
 							<div
-								class="flex items-center justify-between border-t {group.divider} bg-white/[0.02] px-3 py-2"
+								class="flex items-center justify-between border-t {group.divider} bg-white/2 px-3 py-2"
 							>
 								<span class="text-xs font-medium text-muted-foreground">Subtotal</span>
 								<span class="font-mono text-sm font-semibold tabular-nums">
@@ -202,7 +202,7 @@
 						</div>
 					{/if}
 
-					<div class="flex items-center justify-between border-t border-white/[0.06] pt-3">
+					<div class="flex items-center justify-between border-t border-white/6 pt-3">
 						<p class="font-semibold">Total</p>
 						<span class="font-mono text-lg font-bold text-primary tabular-nums">
 							{Math.round(breakdown.total)}

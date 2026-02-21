@@ -75,8 +75,8 @@
 	</div>
 
 	<div class="glass overflow-hidden rounded-xl">
-		<div class="h-1 w-full bg-gradient-to-r from-primary via-primary/60 to-accent/40"></div>
-		<div class="border-b border-white/[0.06] p-5">
+		<div class="h-1 w-full bg-linear-to-r from-primary via-primary/60 to-accent/40"></div>
+		<div class="border-b border-white/6 p-5">
 			<h1 class="text-xl font-semibold">Create League</h1>
 			<p class="mt-1 text-sm text-muted-foreground">
 				Name your league and configure the draft settings.
@@ -91,7 +91,7 @@
 						bind:value={name}
 						required
 						placeholder="e.g. Steam Legends 2026"
-						class="h-10 border-white/[0.08] bg-white/[0.03]"
+						class="h-10 border-white/8 bg-white/3"
 					/>
 				</div>
 				<div class="space-y-2">
@@ -100,7 +100,7 @@
 						id="studioName"
 						bind:value={studioName}
 						placeholder="e.g. John's Studio"
-						class="h-10 border-white/[0.08] bg-white/[0.03]"
+						class="h-10 border-white/8 bg-white/3"
 					/>
 				</div>
 				{#if error}
@@ -112,7 +112,7 @@
 				{/if}
 			</div>
 			<div
-				class="flex flex-col gap-2 border-t border-white/[0.06] bg-white/[0.02] p-5 sm:flex-row-reverse"
+				class="flex flex-col gap-2 border-t border-white/6 bg-white/2 p-5 sm:flex-row-reverse"
 			>
 				<Button
 					type="submit"

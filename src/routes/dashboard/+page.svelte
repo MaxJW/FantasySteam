@@ -59,7 +59,7 @@
 			<Button
 				variant="outline"
 				href="/league/join"
-				class="gap-2 border-white/[0.08] hover:border-white/[0.15]"
+				class="gap-2 border-white/8 hover:border-white/15"
 			>
 				<LogIn class="h-4 w-4" /> Join
 			</Button>
@@ -73,13 +73,13 @@
 		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 			{#each Array(3) as _, i}
 				<div
-					class="animate-fade-in-up rounded-xl border border-white/[0.06] bg-card/50 p-6"
+					class="animate-fade-in-up rounded-xl border border-white/6 bg-card/50 p-6"
 					style="animation-delay: {i * 0.1}s"
 				>
 					<div class="space-y-3">
-						<div class="h-5 w-2/3 animate-pulse rounded bg-white/[0.06]"></div>
-						<div class="h-4 w-1/3 animate-pulse rounded bg-white/[0.04]"></div>
-						<div class="mt-4 h-2 w-full rounded-full bg-white/[0.04]"></div>
+						<div class="h-5 w-2/3 animate-pulse rounded bg-white/6"></div>
+						<div class="h-4 w-1/3 animate-pulse rounded bg-white/4"></div>
+						<div class="mt-4 h-2 w-full rounded-full bg-white/4"></div>
 					</div>
 				</div>
 			{/each}
@@ -111,10 +111,10 @@
 					style="animation-delay: {i * 0.06}s"
 				>
 					<div
-						class="relative overflow-hidden rounded-xl border border-white/[0.06] bg-card/60 transition-all duration-200 hover:border-primary/30 hover:bg-card/80 hover:shadow-lg hover:shadow-primary/[0.05]"
+						class="relative overflow-hidden rounded-xl border border-white/6 bg-card/60 transition-all duration-200 hover:border-primary/30 hover:bg-card/80 hover:shadow-lg hover:shadow-primary/5"
 					>
 						<div
-							class="h-1 w-full bg-gradient-to-r from-primary/60 via-primary/30 to-transparent"
+							class="h-1 w-full bg-linear-to-r from-primary/60 via-primary/30 to-transparent"
 						></div>
 						<div class="p-5">
 							<div class="flex items-start justify-between gap-2">
@@ -139,7 +139,7 @@
 								<span>Season {league.season}</span>
 								<span class="text-border">|</span>
 								<span
-									class="rounded bg-white/[0.05] px-1.5 py-0.5 font-mono text-xs text-foreground"
+									class="rounded bg-white/5 px-1.5 py-0.5 font-mono text-xs text-foreground"
 								>
 									{league.code}
 								</span>
@@ -157,7 +157,7 @@
 													  league.status !== 'draft' &&
 													  league.status !== 'completed'
 													? 'bg-primary'
-													: 'bg-white/[0.06]'}"
+													: 'bg-white/6'}"
 										></div>
 									{/each}
 								</div>

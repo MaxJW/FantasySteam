@@ -75,7 +75,7 @@
 
 <div class="flex min-h-screen flex-col">
 	<header class="sticky top-0 z-40 w-full">
-		<div class="glass-heavy border-b border-white/[0.06]">
+		<div class="glass-heavy border-b border-white/6">
 			<div class="container mx-auto flex h-14 items-center justify-between px-4 md:h-16">
 				<div class="flex items-center gap-5">
 					<a
@@ -95,7 +95,7 @@
 					</a>
 					<a
 						href="/how-to-play"
-						class="cursor-pointer rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
+						class="cursor-pointer rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-white/6 hover:text-foreground"
 						aria-label="How to play"
 					>
 						<CircleQuestionMark class="size-4" />
@@ -107,8 +107,8 @@
 								class="relative cursor-pointer rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all {isActive(
 									'/dashboard'
 								)
-									? 'bg-white/[0.08] text-foreground'
-									: 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground'}"
+									? 'bg-white/8 text-foreground'
+									: 'text-muted-foreground hover:bg-white/4 hover:text-foreground'}"
 							>
 								Dashboard
 							</a>
@@ -117,8 +117,8 @@
 								class="relative cursor-pointer rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all {isActive(
 									'/games'
 								)
-									? 'bg-white/[0.08] text-foreground'
-									: 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground'}"
+									? 'bg-white/8 text-foreground'
+									: 'text-muted-foreground hover:bg-white/4 hover:text-foreground'}"
 							>
 								Browse Games
 							</a>
@@ -146,14 +146,14 @@
 				</div>
 			</div>
 		</div>
-		<div class="h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
+		<div class="h-px bg-linear-to-r from-transparent via-primary/30 to-transparent"></div>
 	</header>
 
 	<main class="container mx-auto flex-1 px-4 py-6 pb-24 md:py-8 md:pb-8">
 		{@render children()}
 	</main>
 
-	<footer class="border-t border-white/[0.06] {user ? 'hidden md:block' : ''}">
+	<footer class="border-t border-white/6 {user ? 'hidden md:block' : ''}">
 		<div
 			class="container mx-auto flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 py-4 text-center text-sm text-muted-foreground"
 		>
@@ -171,8 +171,8 @@
 
 	{#if user}
 		<nav class="fixed right-0 bottom-0 left-0 z-40 md:hidden" aria-label="Main navigation">
-			<div class="h-px bg-gradient-to-r from-transparent via-primary/25 to-transparent"></div>
-			<div class="glass-heavy border-t border-white/[0.04] pb-[env(safe-area-inset-bottom)]">
+			<div class="h-px bg-linear-to-r from-transparent via-primary/25 to-transparent"></div>
+			<div class="glass-heavy border-t border-white/4 pb-[env(safe-area-inset-bottom)]">
 				<div class="flex w-full items-center justify-around px-2 py-1.5">
 					<a
 						href="/dashboard"
@@ -180,7 +180,7 @@
 							'/dashboard'
 						)
 							? 'bg-primary/10 text-primary'
-							: 'text-muted-foreground active:bg-white/[0.04]'}"
+							: 'text-muted-foreground active:bg-white/4'}"
 						aria-current={isActive('/dashboard') ? 'page' : undefined}
 					>
 						<LayoutDashboard class="size-5 shrink-0" aria-hidden="true" />
@@ -192,7 +192,7 @@
 							'/games'
 						)
 							? 'bg-primary/10 text-primary'
-							: 'text-muted-foreground active:bg-white/[0.04]'}"
+							: 'text-muted-foreground active:bg-white/4'}"
 						aria-current={isActive('/games') ? 'page' : undefined}
 					>
 						<Gamepad2 class="size-5 shrink-0" aria-hidden="true" />
@@ -204,7 +204,7 @@
 							'/profile'
 						)
 							? 'bg-primary/10 text-primary'
-							: 'text-muted-foreground active:bg-white/[0.04]'}"
+							: 'text-muted-foreground active:bg-white/4'}"
 						aria-current={isActive('/profile') ? 'page' : undefined}
 					>
 						<Avatar class="size-5 shrink-0">
