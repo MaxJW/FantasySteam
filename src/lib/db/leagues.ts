@@ -27,9 +27,7 @@ import {
 	getNextPhase,
 	getScoringGameIds,
 	getEffectiveCurrentPhase,
-	getSeasonEndDate,
-	isDraftWindowOpen,
-	isPastSeason
+	getSeasonEndDate
 } from './types';
 import { getGameHistory } from './games';
 
@@ -89,23 +87,6 @@ export async function getTeam(
 export async function getTeams(leagueId: string): Promise<(Team & { id: string })[]> {
 	const snap = await getDocs(collection(db, LEAGUES, leagueId, TEAMS));
 	return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Team & { id: string });
-}
-
-/** Returns human-readable status label for a league (e.g. "Drafting", "Scoring", "Completed"). */
-export function getLeagueStatusLabel(league: League | null): string {
-	if (!league) return '';
-	if (league.status === 'completed') {
-		return league.season && isPastSeason(league.season)
-			? `Season ${league.season} Complete`
-			: 'Completed';
-	}
-	if (league.status === 'draft') {
-		const phase = league.currentPhase ?? 'winter';
-		if (phase !== 'winter') return 'Scoring';
-		const open = league.season && isDraftWindowOpen(phase, league.season);
-		return open ? 'Drafting' : 'Pre-Season';
-	}
-	return 'Scoring';
 }
 
 // -----------------------------------------------------------------------
@@ -431,7 +412,10 @@ export async function getBombDamageBreakdown(
 	if (numTeams < 2) return [];
 
 	const scoringSnap = await getDocs(collection(db, LEAGUES, leagueId, 'scoring'));
-	const bombDamageBySource = new Map<string, { gameId: string; pickerTeamName: string; damage: number }>();
+	const bombDamageBySource = new Map<
+		string,
+		{ gameId: string; pickerTeamName: string; damage: number }
+	>();
 
 	const bombGameIds = new Set<string>();
 	for (const t of teams) {

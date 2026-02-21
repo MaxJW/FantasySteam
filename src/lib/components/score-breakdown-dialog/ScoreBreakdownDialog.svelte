@@ -49,12 +49,7 @@
 
 	const breakdown = $derived.by((): ScoreBreakdown | null => {
 		if (!team) return null;
-		return getScoreBreakdown(
-			team.picks,
-			games,
-			delistedGames,
-			team.bombAdjustment ?? 0
-		);
+		return getScoreBreakdown(team.picks, games, delistedGames, team.bombAdjustment ?? 0);
 	});
 
 	const groupedPicks = $derived.by(() => {
@@ -105,7 +100,6 @@
 			}))
 			.filter((g) => g.items.length > 0);
 	});
-
 </script>
 
 <Dialog.Root {open} {onOpenChange}>
@@ -120,9 +114,7 @@
 			{#if breakdown}
 				<div class="space-y-3">
 					{#each groupedPicks as group}
-						<div
-							class="overflow-hidden rounded-lg border {group.border} {group.bg}"
-						>
+						<div class="overflow-hidden rounded-lg border {group.border} {group.bg}">
 							<div class="flex items-center gap-2 border-b {group.divider} px-3 py-2.5">
 								{#if group.key === 'hit'}
 									<Target class="h-4 w-4 shrink-0 {group.iconColor}" />
@@ -172,9 +164,7 @@
 								<Bomb class="h-4 w-4 shrink-0 text-destructive" />
 								<div>
 									<p class="text-sm font-medium">Bomb damage received</p>
-									<p class="text-xs text-muted-foreground">
-										From other players' bomb picks
-									</p>
+									<p class="text-xs text-muted-foreground">From other players' bomb picks</p>
 								</div>
 							</div>
 							{#if bombBreakdown.length > 0}
@@ -192,7 +182,9 @@
 													{item.pickerTeamName}'s bomb
 												</p>
 											</div>
-											<span class="shrink-0 font-mono text-sm font-semibold tabular-nums text-destructive">
+											<span
+												class="shrink-0 font-mono text-sm font-semibold text-destructive tabular-nums"
+											>
 												{Math.round(item.damage)}
 											</span>
 										</button>
@@ -203,26 +195,22 @@
 								class="flex items-center justify-between border-t border-destructive/10 bg-destructive/5 px-3 py-2"
 							>
 								<span class="text-xs font-medium text-muted-foreground">Subtotal</span>
-								<span class="font-mono text-sm font-semibold tabular-nums text-destructive">
+								<span class="font-mono text-sm font-semibold text-destructive tabular-nums">
 									{Math.round(breakdown.bombAdjustment)}
 								</span>
 							</div>
 						</div>
 					{/if}
 
-					<div
-						class="flex items-center justify-between border-t border-white/[0.06] pt-3"
-					>
+					<div class="flex items-center justify-between border-t border-white/[0.06] pt-3">
 						<p class="font-semibold">Total</p>
-						<span class="font-mono text-lg font-bold tabular-nums text-primary">
+						<span class="font-mono text-lg font-bold text-primary tabular-nums">
 							{Math.round(breakdown.total)}
 						</span>
 					</div>
 				</div>
 			{:else}
-				<p class="py-8 text-center text-sm text-muted-foreground">
-					No score data available.
-				</p>
+				<p class="py-8 text-center text-sm text-muted-foreground">No score data available.</p>
 			{/if}
 		</div>
 	</Dialog.Content>

@@ -92,9 +92,9 @@
 	let bookmarkedIds = $state<Set<string>>(new Set());
 	let scoreBreakdownTeamId = $state<string | null>(null);
 	let bombBreakdown = $state<Awaited<ReturnType<typeof getBombDamageBreakdown>>>([]);
-	let bombBreakdownByTeam = $state<Record<string, Awaited<ReturnType<typeof getBombDamageBreakdown>>>>(
-		{}
-	);
+	let bombBreakdownByTeam = $state<
+		Record<string, Awaited<ReturnType<typeof getBombDamageBreakdown>>>
+	>({});
 
 	const me = $derived(getCurrentUser());
 
@@ -1043,7 +1043,8 @@
 									class="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left"
 									onclick={() => toggleTeam(team.id)}
 									onkeydown={(e) =>
-										(e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toggleTeam(team.id))}
+										(e.key === 'Enter' || e.key === ' ') &&
+										(e.preventDefault(), toggleTeam(team.id))}
 								>
 									<span
 										class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold {getRankStyle(
@@ -1310,16 +1311,14 @@
 <ScoreBreakdownDialog
 	open={scoreBreakdownTeamId != null}
 	onOpenChange={(open) => !open && (scoreBreakdownTeamId = null)}
-	team={scoreBreakdownTeamId ? teams.find((t) => t.id === scoreBreakdownTeamId) ?? null : null}
-	games={games}
+	team={scoreBreakdownTeamId ? (teams.find((t) => t.id === scoreBreakdownTeamId) ?? null) : null}
+	{games}
 	delistedGames={league?.delistedGames ?? []}
-	teamDisplayName={
-		(() => {
-			const t = scoreBreakdownTeamId ? teams.find((t) => t.id === scoreBreakdownTeamId) : null;
-			return t ? t.name || userProfiles[t.id]?.displayName || 'Unknown' : '';
-		})()
-	}
-	bombBreakdown={bombBreakdown}
+	teamDisplayName={(() => {
+		const t = scoreBreakdownTeamId ? teams.find((t) => t.id === scoreBreakdownTeamId) : null;
+		return t ? t.name || userProfiles[t.id]?.displayName || 'Unknown' : '';
+	})()}
+	{bombBreakdown}
 	onGameClick={(gameId) => {
 		scoreBreakdownTeamId = null;
 		openGameDetail(gameId);
