@@ -28,15 +28,15 @@
 	} as const;
 
 	const draftWindowOpen: Record<string, string> = {
-		winter: 'Dec or Jan–Apr',
-		summer: 'Apr or May–Aug',
-		fall: 'Aug or Sep–Dec'
+		winter: 'December',
+		summer: 'April',
+		fall: 'August'
 	};
 
 	const phaseWindows: Record<string, string> = {
-		winter: 'Jan – Apr',
-		summer: 'May – Aug',
-		fall: 'Sep – Dec'
+		winter: 'January – April',
+		summer: 'May – August',
+		fall: 'September – December'
 	};
 
 	const phases = DRAFT_PHASES.map((phase) => ({
@@ -84,7 +84,7 @@
 				>, each covering a portion of the year's releases.
 			</p>
 			<div class="grid gap-3 sm:grid-cols-3">
-				{#each phases as { phase, label, draftOpens, window, isCurrent, Icon }}
+				{#each phases as { label, draftOpens, window, isCurrent, Icon }}
 					<div
 						class="rounded-lg border p-4 transition-colors {isCurrent
 							? 'border-primary/40 bg-primary/6'
@@ -101,7 +101,7 @@
 							<Badge variant="outline" class="text-[10px]">
 								{label}
 								{#if isCurrent}
-									<span class="ml-1 text-primary">(current)</span>
+									<span class="ml-1 text-primary">(Current)</span>
 								{/if}
 							</Badge>
 						</div>
@@ -242,28 +242,41 @@
 			</div>
 
 			<!-- Bomb -->
-			<div class="rounded-lg border border-destructive/20 bg-destructive/4 p-4">
-				<h4 class="text-sm font-semibold text-destructive">Bomb Damage</h4>
-				<p class="mt-1 text-sm text-muted-foreground">
-					Each day, the bomb threshold is set at the <strong class="text-foreground"
-						>25th percentile</strong
-					>
-					of all active games' daily scores. If a bomb game scores below this threshold, the difference
-					is split equally among all other players as a penalty. The threshold adapts naturally as more
-					games release throughout the season.
-				</p>
+			<div class="overflow-hidden rounded-lg border border-destructive/20 bg-destructive/4">
+				<div
+					class="flex items-center gap-2 border-b border-destructive/10 bg-destructive/4 px-4 py-2.5"
+				>
+					<Bomb class="h-4 w-4 text-destructive" />
+					<h4 class="text-sm font-semibold">Bomb Damage</h4>
+				</div>
+				<div class="p-4">
+					<p class="text-sm text-muted-foreground">
+						Each day, the bomb threshold is set at the <strong class="text-foreground"
+							>25th percentile</strong
+						>
+						of all active games' daily scores. If a bomb game scores below this threshold, the difference
+						is split equally among all other players as a penalty. The threshold adapts naturally as more
+						games release throughout the season.
+					</p>
+				</div>
 			</div>
 
 			<Separator class="opacity-20" />
+		</div>
+	</section>
 
-			<div>
-				<h4 class="text-sm font-semibold">Winning</h4>
-				<p class="mt-1 text-sm text-muted-foreground">
-					The player with the highest total score at the end of the season wins. Your total equals
-					the sum of all your games' daily points plus any milestone and breakout bonuses, minus
-					bomb damage received.
-				</p>
-			</div>
+	<!-- Winning -->
+	<section class="glass overflow-hidden rounded-xl">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
+			<Trophy class="h-4 w-4 text-primary" />
+			<h2 class="font-semibold">Winning</h2>
+		</div>
+		<div class="p-5">
+			<p class="text-sm text-muted-foreground">
+				The player with the highest total score at the end of the season wins. Your total equals the
+				sum of all your games' daily points plus any milestone and breakout bonuses, minus bomb
+				damage received.
+			</p>
 		</div>
 	</section>
 

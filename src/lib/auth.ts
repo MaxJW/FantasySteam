@@ -56,6 +56,7 @@ export async function signOut(): Promise<void> {
 	await firebaseSignOut(auth);
 }
 
+/** One-time read of current user. For reactive UI (bookmarks, commissioner checks), use `$currentUser` in components. */
 export function getCurrentUser(): User | null {
 	return get(currentUser);
 }

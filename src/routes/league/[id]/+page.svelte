@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
-	import { getCurrentUser } from '$lib/auth';
+	import { currentUser, getCurrentUser } from '$lib/auth';
 	import {
 		getLeague,
 		getTeams,
@@ -18,10 +18,16 @@
 		getBookmarkedGameIds,
 		addBookmark,
 		removeBookmark,
-		getBombDamageBreakdown,
 		getBombDamageBreakdownForAllTeams
 	} from '$lib/db';
-	import type { Team, Game, DraftPhase, DraftStatus, SeasonSnapshot } from '$lib/db';
+	import type {
+		Team,
+		Game,
+		DraftPhase,
+		DraftStatus,
+		SeasonSnapshot,
+		BombDamageItem
+	} from '$lib/db';
 	import {
 		DRAFT_PHASES,
 		PHASE_CONFIG,
@@ -91,12 +97,13 @@
 	let loadError = $state<string | null>(null);
 	let bookmarkedIds = $state<Set<string>>(new Set());
 	let scoreBreakdownTeamId = $state<string | null>(null);
-	let bombBreakdown = $state<Awaited<ReturnType<typeof getBombDamageBreakdown>>>([]);
-	let bombBreakdownByTeam = $state<
-		Record<string, Awaited<ReturnType<typeof getBombDamageBreakdown>>>
-	>({});
+	let bombBreakdownByTeam = $state<Record<string, BombDamageItem[]>>({});
+	let me = $state<ReturnType<typeof getCurrentUser>>(get(currentUser));
 
-	const me = $derived(getCurrentUser());
+	$effect(() => {
+		const unsub = currentUser.subscribe((u) => (me = u ?? null));
+		return unsub;
+	});
 
 	async function retryLeagueLoad() {
 		if (!leagueId) return;
@@ -154,15 +161,14 @@
 			bookmarkedIds = new Set();
 			return;
 		}
+		const pickConfig: Record<string, { label: string; icon: any; color: string }> = {
+			hitPick: { label: 'Hit', icon: Target, color: 'text-accent' },
+			bombPick: { label: 'Bomb', icon: Bomb, color: 'text-destructive' },
+			seasonalPick: { label: 'Seasonal', icon: Snowflake, color: 'text-sky-400' },
+			altPick: { label: 'Alt', icon: Shuffle, color: 'text-purple-400' }
+		};
 		getBookmarkedGameIds(user.uid).then((ids) => (bookmarkedIds = ids));
 	});
-
-	const pickConfig: Record<string, { label: string; icon: any; color: string }> = {
-		hitPick: { label: 'Hit', icon: Target, color: 'text-accent' },
-		bombPick: { label: 'Bomb', icon: Bomb, color: 'text-destructive' },
-		seasonalPick: { label: 'Seasonal', icon: Snowflake, color: 'text-sky-400' },
-		altPick: { label: 'Alt', icon: Shuffle, color: 'text-purple-400' }
-	};
 
 	$effect(() => {
 		const id = get(page).params?.id;
@@ -285,20 +291,6 @@
 	});
 
 	$effect(() => {
-		const teamId = scoreBreakdownTeamId;
-		const id = leagueId;
-		if (!teamId || !id || teams.length === 0) {
-			bombBreakdown = [];
-			return;
-		}
-		const seasonEnd =
-			league?.season && isPastSeason(league.season) ? getSeasonEndDate(league.season) : undefined;
-		getBombDamageBreakdown(id, teamId, teams, games, seasonEnd).then(
-			(breakdown) => (bombBreakdown = breakdown)
-		);
-	});
-
-	$effect(() => {
 		const id = leagueId;
 		if (!id || teams.length === 0) {
 			bombBreakdownByTeam = {};
@@ -413,7 +405,7 @@
 		return `${Math.ceil(diffDays / 30)}mo`;
 	}
 
-	const isCommissioner = $derived(!!(league && getCurrentUser()?.uid === league.commissionerId));
+	const isCommissioner = $derived(!!(league && me?.uid === league.commissionerId));
 
 	function resetSettingsForm() {
 		settingsJustSaved = false;
@@ -492,9 +484,9 @@
 	}
 
 	const DRAFT_MONTH_LABELS: Record<DraftPhase, string> = {
-		winter: 'Dec',
-		summer: 'Apr',
-		fall: 'Aug'
+		winter: 'December',
+		summer: 'April',
+		fall: 'August'
 	};
 
 	function getPhaseStatusLabel(phase: DraftPhase): string {
@@ -1318,7 +1310,7 @@
 		const t = scoreBreakdownTeamId ? teams.find((t) => t.id === scoreBreakdownTeamId) : null;
 		return t ? t.name || userProfiles[t.id]?.displayName || 'Unknown' : '';
 	})()}
-	{bombBreakdown}
+	bombBreakdown={scoreBreakdownTeamId ? (bombBreakdownByTeam[scoreBreakdownTeamId] ?? []) : []}
 	onGameClick={(gameId) => {
 		scoreBreakdownTeamId = null;
 		openGameDetail(gameId);

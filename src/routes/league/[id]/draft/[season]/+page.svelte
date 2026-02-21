@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
-	import { getCurrentUser } from '$lib/auth';
+	import { currentUser, getCurrentUser } from '$lib/auth';
 	import {
 		getLeague,
 		getGameListPage,
@@ -104,7 +104,7 @@
 	let gameListViewportRef = $state<HTMLDivElement | null>(null);
 	let loadError = $state<string | null>(null);
 
-	const me = $derived(getCurrentUser());
+	const me = $derived($currentUser ?? null);
 	const isCommissioner = $derived(!!(me && league && league.commissionerId === me.uid));
 	const alreadyPickedGameIds = $derived(new Set((draft?.picks ?? []).map((p) => p.gameId)));
 	const maxSeasonalPicks = $derived(

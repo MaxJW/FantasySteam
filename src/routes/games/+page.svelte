@@ -18,7 +18,7 @@
 		PHASE_CONFIG,
 		getPhaseReleaseDateRange
 	} from '$lib/db';
-	import { getCurrentUser } from '$lib/auth';
+	import { currentUser } from '$lib/auth';
 	import * as Select from '$lib/components/ui/select';
 	import * as Table from '$lib/components/ui/table';
 	import { Button } from '$lib/components/ui/button';
@@ -88,7 +88,7 @@
 	let collapsedFilterBarRef = $state<HTMLDivElement | undefined>(undefined);
 	let scrollY = $state(0);
 
-	const me = $derived(getCurrentUser());
+	const me = $derived($currentUser ?? null);
 
 	function scrollToTop() {
 		const start = window.scrollY;
