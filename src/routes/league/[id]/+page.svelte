@@ -883,7 +883,7 @@
 								class="overflow-hidden rounded-xl border border-white/[0.06] bg-card/40 transition-colors hover:border-white/[0.1]"
 							>
 								<button
-									class="flex w-full items-center gap-3 px-4 py-3 text-left"
+									class="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left"
 									onclick={() => toggleTeam(team.id)}
 								>
 									<span
@@ -929,7 +929,7 @@
 												{#if hitGame}
 													<button
 														type="button"
-														class="group relative block w-20 overflow-hidden rounded-lg border border-white/[0.08] text-left transition-all hover:border-accent/40 hover:shadow-md focus:ring-2 focus:ring-ring focus:outline-none"
+														class="group relative block w-20 cursor-pointer overflow-hidden rounded-lg border border-white/[0.08] text-left transition-all hover:border-accent/40 hover:shadow-md focus:ring-2 focus:ring-ring focus:outline-none"
 														onclick={() => openGameDetail(team.picks.hitPick!)}
 													>
 														{#if hitGame.coverUrl}
@@ -967,7 +967,7 @@
 												{#if bombGame}
 													<button
 														type="button"
-														class="group relative block w-20 overflow-hidden rounded-lg border border-white/[0.08] text-left transition-all hover:border-destructive/40 hover:shadow-md focus:ring-2 focus:ring-ring focus:outline-none"
+														class="group relative block w-20 cursor-pointer overflow-hidden rounded-lg border border-white/[0.08] text-left transition-all hover:border-destructive/40 hover:shadow-md focus:ring-2 focus:ring-ring focus:outline-none"
 														onclick={() => openGameDetail(team.picks.bombPick!)}
 													>
 														{#if bombGame.coverUrl}
@@ -1020,7 +1020,7 @@
 															{#if game}
 																<button
 																	type="button"
-																	class="group relative block w-full overflow-hidden rounded-lg border border-white/[0.08] text-left transition-all hover:border-sky-400/40 hover:shadow-md focus:ring-2 focus:ring-ring focus:outline-none"
+																	class="group relative block w-full cursor-pointer overflow-hidden rounded-lg border border-white/[0.08] text-left transition-all hover:border-sky-400/40 hover:shadow-md focus:ring-2 focus:ring-ring focus:outline-none"
 																	onclick={() => openGameDetail(gameId)}
 																>
 																	{#if game.coverUrl}
@@ -1073,7 +1073,7 @@
 														{#if game}
 															<button
 																type="button"
-																class="group relative block w-full overflow-hidden rounded-lg border border-dashed border-purple-400/20 text-left opacity-60 transition-all hover:border-purple-400/40 hover:opacity-100 hover:shadow-md focus:ring-2 focus:ring-ring focus:outline-none"
+																class="group relative block w-full cursor-pointer overflow-hidden rounded-lg border border-dashed border-purple-400/20 text-left opacity-60 transition-all hover:border-purple-400/40 hover:opacity-100 hover:shadow-md focus:ring-2 focus:ring-ring focus:outline-none"
 																onclick={() => openGameDetail(gameId)}
 															>
 																{#if game.coverUrl}
@@ -1157,7 +1157,7 @@
 										{#if teamsWithGame.length > 0}
 											<button
 												type="button"
-												class="flex w-full items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors hover:bg-white/[0.04] focus:ring-2 focus:ring-ring focus:outline-none"
+												class="flex w-full cursor-pointer items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors hover:bg-white/[0.04] focus:ring-2 focus:ring-ring focus:outline-none"
 												onclick={() => openGameDetail(game.id)}
 											>
 												{#if game.coverUrl}

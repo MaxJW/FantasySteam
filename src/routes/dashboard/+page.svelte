@@ -103,7 +103,7 @@
 			{#each leagues as league, i}
 				<a
 					href="/league/{league.id}"
-					class="group block animate-fade-in-up"
+					class="group block animate-fade-in-up cursor-pointer"
 					style="animation-delay: {i * 0.06}s"
 				>
 					<div

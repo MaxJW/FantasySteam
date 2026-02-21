@@ -76,7 +76,7 @@
 					size="lg"
 					onclick={handleSignIn}
 					disabled={loading}
-					class="glow-primary cursor-pointer px-10 py-6 text-base font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+					class="glow-primary px-10 py-6 text-base font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
 				>
 					{loading ? 'Signing in...' : 'Sign in with Google'}
 				</Button>

@@ -404,7 +404,7 @@
 						<Table.Head class="w-[120px]">
 							<button
 								type="button"
-								class="flex items-center gap-1 rounded text-xs hover:text-foreground"
+								class="flex cursor-pointer items-center gap-1 rounded text-xs hover:text-foreground"
 								onclick={() => setSort('date')}
 							>
 								Date
@@ -420,7 +420,7 @@
 						<Table.Head>
 							<button
 								type="button"
-								class="flex items-center gap-1 rounded text-left text-xs hover:text-foreground"
+								class="flex cursor-pointer items-center gap-1 rounded text-left text-xs hover:text-foreground"
 								onclick={() => setSort('name')}
 							>
 								Game Name
@@ -436,7 +436,7 @@
 						<Table.Head class="w-[80px] text-right">
 							<button
 								type="button"
-								class="ml-auto flex items-center gap-1 rounded text-xs hover:text-foreground"
+								class="ml-auto flex cursor-pointer items-center gap-1 rounded text-xs hover:text-foreground"
 								onclick={() => setSort('score')}
 							>
 								Score

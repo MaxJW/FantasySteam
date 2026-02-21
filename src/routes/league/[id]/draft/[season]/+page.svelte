@@ -784,7 +784,7 @@
 								{#if conf}
 									{@const Icon = conf.icon}
 									<button
-										class="group flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-white/[0.06] bg-white/[0.02] p-5 transition-all {conf.borderHover}"
+										class="group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-white/[0.06] bg-white/[0.02] p-5 transition-all {conf.borderHover}"
 										onclick={() => selectType(type)}
 									>
 										<Icon class="size-9 {conf.color} transition-transform group-hover:scale-110" />
@@ -829,7 +829,7 @@
 									<div class="grid grid-cols-1 gap-0.5">
 										{#each gameListAvailable as game}
 											<button
-												class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
+												class="flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
 												onclick={() => openGameDetail(game.id)}
 											>
 												<span class="text-sm font-medium">{game.name}</span>

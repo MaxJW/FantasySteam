@@ -1,5 +1,9 @@
 import { getAuth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import {
+	initializeFirestore,
+	persistentLocalCache,
+	persistentMultipleTabManager
+} from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
 
 const firebaseConfig = {
@@ -13,12 +17,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
-
-enableIndexedDbPersistence(db).catch((err) => {
-	if (err.code === 'failed-precondition') {
-		console.warn('Firestore persistence: multiple tabs open, using memory cache');
-	} else if (err.code === 'unimplemented') {
-		console.warn('Firestore persistence: browser incompatible');
-	}
+export const db = initializeFirestore(app, {
+	localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });

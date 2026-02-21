@@ -64,7 +64,7 @@
 				<div class="flex items-center gap-5">
 					<a
 						href="/"
-						class="group flex items-center gap-2 text-lg font-bold tracking-tight transition-opacity hover:opacity-90"
+						class="group flex cursor-pointer items-center gap-2 text-lg font-bold tracking-tight transition-opacity hover:opacity-90"
 					>
 						<div
 							class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 transition-colors group-hover:bg-primary/25"
@@ -79,7 +79,7 @@
 					</a>
 					<a
 						href="/how-to-play"
-						class="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
+						class="cursor-pointer rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
 						aria-label="How to play"
 					>
 						<CircleQuestionMark class="size-4" />
@@ -88,7 +88,7 @@
 						<nav class="hidden gap-1 md:flex">
 							<a
 								href="/dashboard"
-								class="relative rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all {isActive(
+								class="relative cursor-pointer rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all {isActive(
 									'/dashboard'
 								)
 									? 'bg-white/[0.08] text-foreground'
@@ -98,7 +98,7 @@
 							</a>
 							<a
 								href="/games"
-								class="relative rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all {isActive(
+								class="relative cursor-pointer rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all {isActive(
 									'/games'
 								)
 									? 'bg-white/[0.08] text-foreground'
@@ -114,7 +114,7 @@
 					{#if user}
 						<a
 							href="/profile"
-							class="hidden shrink-0 rounded-full ring-2 ring-transparent transition-all hover:ring-primary/40 md:flex"
+							class="hidden shrink-0 cursor-pointer rounded-full ring-2 ring-transparent transition-all hover:ring-primary/40 md:flex"
 							aria-label="Profile"
 						>
 							<Avatar class="size-8">
@@ -144,7 +144,7 @@
 				<div class="flex w-full items-center justify-around px-2 py-1.5">
 					<a
 						href="/dashboard"
-						class="flex flex-col items-center gap-0.5 rounded-xl px-5 py-2 transition-all {isActive(
+						class="flex cursor-pointer flex-col items-center gap-0.5 rounded-xl px-5 py-2 transition-all {isActive(
 							'/dashboard'
 						)
 							? 'bg-primary/10 text-primary'
@@ -156,7 +156,7 @@
 					</a>
 					<a
 						href="/games"
-						class="flex flex-col items-center gap-0.5 rounded-xl px-5 py-2 transition-all {isActive(
+						class="flex cursor-pointer flex-col items-center gap-0.5 rounded-xl px-5 py-2 transition-all {isActive(
 							'/games'
 						)
 							? 'bg-primary/10 text-primary'
@@ -168,7 +168,7 @@
 					</a>
 					<a
 						href="/profile"
-						class="flex flex-col items-center gap-0.5 rounded-xl px-5 py-2 transition-all {isActive(
+						class="flex cursor-pointer flex-col items-center gap-0.5 rounded-xl px-5 py-2 transition-all {isActive(
 							'/profile'
 						)
 							? 'bg-primary/10 text-primary'
