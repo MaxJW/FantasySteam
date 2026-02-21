@@ -9,11 +9,15 @@
 		getGameListPage,
 		getGameListGenres,
 		getGameListYears,
+		getBookmarkedGameIds,
+		addBookmark,
+		removeBookmark,
 		refreshGames,
 		DRAFT_PHASES,
 		PHASE_CONFIG,
 		getPhaseReleaseDateRange
 	} from '$lib/db';
+	import { getCurrentUser } from '$lib/auth';
 	import * as Select from '$lib/components/ui/select';
 	import * as Table from '$lib/components/ui/table';
 	import { Button } from '$lib/components/ui/button';
@@ -31,6 +35,7 @@
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import ChevronUp from '@lucide/svelte/icons/chevron-up';
 	import Check from '@lucide/svelte/icons/check';
+	import BookmarkCheck from '@lucide/svelte/icons/bookmark-check';
 
 	type ViewMode = 'table' | 'grid';
 
@@ -58,6 +63,8 @@
 	let genres = $state<string[]>([]);
 	let selectedGenres = $state<string[]>([]);
 	let hideReleased = $state(false);
+	let bookmarkedOnly = $state(false);
+	let bookmarkedIds = $state<Set<string>>(new Set());
 	let games = $state<GameListEntry[]>([]);
 	let totalCount = $state(0);
 	let loadingYears = $state(true);
@@ -80,6 +87,8 @@
 	let filterSentinelRef = $state<HTMLDivElement | undefined>(undefined);
 	let expandedFilterBarRef = $state<HTMLDivElement | undefined>(undefined);
 	let collapsedFilterBarRef = $state<HTMLDivElement | undefined>(undefined);
+
+	const me = $derived(getCurrentUser());
 
 	async function setFiltersCollapsed(collapsed: boolean) {
 		const beforeHeight = collapsed
@@ -130,6 +139,24 @@
 		detailGame = null;
 	}
 
+	async function handleToggleBookmark() {
+		if (!me || !selectedGameId) {
+			console.log('handleToggleBookmark: not me or selectedGameId');
+			console.log('me', me);
+			console.log('selectedGameId', selectedGameId);
+			return;
+		}
+		const wasBookmarked = bookmarkedIds.has(selectedGameId);
+		if (wasBookmarked) {
+			await removeBookmark(me.uid, selectedGameId);
+			bookmarkedIds = new Set([...bookmarkedIds].filter((id) => id !== selectedGameId));
+		} else {
+			await addBookmark(me.uid, selectedGameId);
+			bookmarkedIds = new Set([...bookmarkedIds, selectedGameId]);
+		}
+		if (bookmarkedOnly) loadFirstPage();
+	}
+
 	$effect(() => {
 		loadError = null;
 		getGameListYears()
@@ -153,6 +180,15 @@
 		getGameListGenres(year).then((g) => (genres = g));
 	});
 
+	$effect(() => {
+		const user = me;
+		if (!user) {
+			bookmarkedIds = new Set();
+			return;
+		}
+		getBookmarkedGameIds(user.uid).then((ids) => (bookmarkedIds = ids));
+	});
+
 	function getFilterOpts(year: number): Parameters<typeof getGameListPage>[3] {
 		const opts: Parameters<typeof getGameListPage>[3] = {
 			sortBy,
@@ -165,6 +201,10 @@
 			const { start, end } = getPhaseReleaseDateRange(selectedSeason, year);
 			opts.releaseFrom = start;
 			opts.releaseTo = end;
+		}
+		if (bookmarkedOnly) {
+			opts.bookmarkedOnly = true;
+			opts.bookmarkedIds = bookmarkedIds;
 		}
 		return opts;
 	}
@@ -220,6 +260,7 @@
 		selectedSeason;
 		hideReleased;
 		selectedGenres;
+		bookmarkedOnly;
 		if (selectedYear) loadFirstPage();
 	});
 
@@ -426,6 +467,27 @@
 							</span>
 							<span class="text-sm text-foreground">Hide released</span>
 						</button>
+						{#if me}
+							<button
+								type="button"
+								role="checkbox"
+								aria-checked={bookmarkedOnly}
+								aria-label="Bookmarked only"
+								class="flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 transition-colors hover:bg-white/[0.06]"
+								onclick={() => (bookmarkedOnly = !bookmarkedOnly)}
+							>
+								<span
+									class="flex size-4 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] transition-colors {bookmarkedOnly
+										? 'border-primary bg-primary text-primary-foreground'
+										: ''}"
+								>
+									{#if bookmarkedOnly}
+										<Check class="h-2.5 w-2.5" />
+									{/if}
+								</span>
+								<span class="text-sm text-foreground">Bookmarked only</span>
+							</button>
+						{/if}
 					</div>
 
 					<!-- Sort, View toggle, Count -->
@@ -578,7 +640,12 @@
 								>{game.releaseDate ?? 'TBA'}</Table.Cell
 							>
 							<Table.Cell class="min-w-0 overflow-hidden text-sm font-medium">
-								<span class="block truncate" title={game.name}>{game.name}</span>
+								<span class="flex items-center gap-2">
+									{#if bookmarkedIds.has(game.id)}
+										<BookmarkCheck class="h-3.5 w-3.5 shrink-0 text-yellow-400" />
+									{/if}
+									<span class="truncate" title={game.name}>{game.name}</span>
+								</span>
 							</Table.Cell>
 							<Table.Cell class="text-right font-mono text-xs text-muted-foreground">
 								{game.score != null ? Math.round(game.score).toLocaleString() : '—'}
@@ -615,6 +682,11 @@
 							{game.name}
 						</div>
 					{/if}
+					{#if bookmarkedIds.has(game.id)}
+						<div class="absolute top-2 right-2 rounded-full bg-black/60 p-1" aria-hidden="true">
+							<BookmarkCheck class="h-4 w-4 text-yellow-400" />
+						</div>
+					{/if}
 					<div
 						class="absolute inset-x-0 bottom-0 flex min-h-[50%] flex-col justify-end bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-hover:opacity-100"
 					>
@@ -649,4 +721,6 @@
 	game={detailGame}
 	loading={detailLoading}
 	showNotFound={selectedGameId != null && !detailLoading && detailGame == null}
+	isBookmarked={selectedGameId != null && bookmarkedIds.has(selectedGameId)}
+	onToggleBookmark={handleToggleBookmark}
 />

@@ -14,7 +14,10 @@
 		syncLeagueCurrentPhase,
 		updateLeagueSettings,
 		deleteLeague,
-		getUserProfile
+		getUserProfile,
+		getBookmarkedGameIds,
+		addBookmark,
+		removeBookmark
 	} from '$lib/db';
 	import type { Team, Game, DraftPhase, DraftStatus, SeasonSnapshot } from '$lib/db';
 	import {
@@ -77,6 +80,9 @@
 	});
 	let seasonSnapshot = $state<SeasonSnapshot | null>(null);
 	let loadError = $state<string | null>(null);
+	let bookmarkedIds = $state<Set<string>>(new Set());
+
+	const me = $derived(getCurrentUser());
 
 	async function retryLeagueLoad() {
 		if (!leagueId) return;
@@ -110,6 +116,32 @@
 		selectedGameId = null;
 		detailGame = null;
 	}
+
+	async function handleToggleBookmark() {
+		if (!me || !selectedGameId) {
+			console.log('handleToggleBookmark: not me or selectedGameId');
+			console.log('me', me);
+			console.log('selectedGameId', selectedGameId);
+			return;
+		}
+		const wasBookmarked = bookmarkedIds.has(selectedGameId);
+		if (wasBookmarked) {
+			await removeBookmark(me.uid, selectedGameId);
+			bookmarkedIds = new Set([...bookmarkedIds].filter((id) => id !== selectedGameId));
+		} else {
+			await addBookmark(me.uid, selectedGameId);
+			bookmarkedIds = new Set([...bookmarkedIds, selectedGameId]);
+		}
+	}
+
+	$effect(() => {
+		const user = me;
+		if (!user) {
+			bookmarkedIds = new Set();
+			return;
+		}
+		getBookmarkedGameIds(user.uid).then((ids) => (bookmarkedIds = ids));
+	});
 
 	const pickConfig: Record<string, { label: string; icon: any; color: string }> = {
 		hitPick: { label: 'Hit', icon: Target, color: 'text-accent' },
@@ -1221,4 +1253,6 @@
 	game={detailGame}
 	loading={detailLoading}
 	showNotFound={selectedGameId != null && !detailLoading && detailGame == null}
+	isBookmarked={selectedGameId != null && bookmarkedIds.has(selectedGameId)}
+	onToggleBookmark={handleToggleBookmark}
 />

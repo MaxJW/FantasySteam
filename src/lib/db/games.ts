@@ -145,7 +145,7 @@ export function getGameList(year: number): Promise<GameListEntry[]> {
 export type GameListSortBy = 'id' | 'name' | 'date' | 'score';
 export type GameListOrder = 'asc' | 'desc';
 
-/** Paginated games for a year. Optional search, sort, releaseFrom/releaseTo (YYYY-MM-DD), hideReleased, genres. */
+/** Paginated games for a year. Optional search, sort, releaseFrom/releaseTo (YYYY-MM-DD), hideReleased, genres, bookmarkedOnly. */
 export async function getGameListPage(
 	year: number,
 	limit: number,
@@ -158,6 +158,8 @@ export async function getGameListPage(
 		releaseTo?: string;
 		hideReleased?: boolean;
 		genres?: string[];
+		bookmarkedIds?: Set<string>;
+		bookmarkedOnly?: boolean;
 	}
 ): Promise<{ games: GameListEntry[]; total: number }> {
 	const filterOpts = opts?.genres?.length ? { genres: opts.genres } : undefined;
@@ -174,6 +176,9 @@ export async function getGameListPage(
 			const d = g.releaseDate ?? '';
 			return !d || d > today;
 		});
+	}
+	if (opts?.bookmarkedOnly && opts?.bookmarkedIds) {
+		full = full.filter((g) => opts!.bookmarkedIds!.has(g.id));
 	}
 	if (opts?.search?.trim()) {
 		const q = opts.search.trim().toLowerCase();

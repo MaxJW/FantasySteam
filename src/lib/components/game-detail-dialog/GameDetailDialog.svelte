@@ -13,6 +13,8 @@
 		title?: string;
 		showNotFound?: boolean;
 		footer?: import('svelte').Snippet;
+		isBookmarked?: boolean;
+		onToggleBookmark?: () => void;
 	}
 
 	let {
@@ -23,7 +25,9 @@
 		loading,
 		title = 'Game details',
 		showNotFound = false,
-		footer
+		footer,
+		isBookmarked = false,
+		onToggleBookmark
 	}: Props = $props();
 </script>
 
@@ -36,7 +40,7 @@
 		{#if footer}
 			<div class="flex h-full min-h-0 flex-col">
 				<div class="min-h-0 flex-1 overflow-y-auto px-5 pt-5">
-					<GameDetailContent {game} />
+					<GameDetailContent {game} {isBookmarked} {onToggleBookmark} />
 				</div>
 				<div class="shrink-0 border-t border-white/[0.06] bg-white/[0.02] px-5 py-4">
 					{@render footer()}
@@ -44,7 +48,9 @@
 			</div>
 		{:else}
 			<div class="flex h-full flex-col">
-				<GameDetailContent {game} />
+				<div class="flex-1 px-5 pt-5">
+					<GameDetailContent {game} {isBookmarked} {onToggleBookmark} />
+				</div>
 			</div>
 		{/if}
 	{/if}
@@ -60,7 +66,7 @@
 						<LoaderCircle class="h-6 w-6 animate-spin text-primary" />
 					</div>
 				{:else if game}
-					<GameDetailContent {game} {footer} />
+					<GameDetailContent {game} {footer} {isBookmarked} {onToggleBookmark} />
 				{:else if showNotFound}
 					<p class="py-10 text-center text-sm text-muted-foreground">Game not found.</p>
 				{/if}

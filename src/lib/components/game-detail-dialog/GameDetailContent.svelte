@@ -4,16 +4,39 @@
 	import { Button } from '$lib/components/ui/button';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import Bookmark from '@lucide/svelte/icons/bookmark';
+	import BookmarkCheck from '@lucide/svelte/icons/bookmark-check';
 
 	interface Props {
 		game: Game & { id: string };
 		footer?: import('svelte').Snippet;
+		isBookmarked?: boolean;
+		onToggleBookmark?: () => void;
 	}
 
-	let { game, footer }: Props = $props();
+	let { game, footer, isBookmarked = false, onToggleBookmark }: Props = $props();
 </script>
 
-<div class="flex flex-col gap-5">
+<div class="relative flex flex-col gap-5">
+	{#if onToggleBookmark}
+		<Button
+			variant="ghost"
+			size="icon"
+			class="absolute top-0 right-0 z-10 h-8 w-8 shrink-0"
+			onclick={(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				onToggleBookmark();
+			}}
+			aria-label={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+		>
+			{#if isBookmarked}
+				<BookmarkCheck class="h-5 w-5 text-yellow-400" />
+			{:else}
+				<Bookmark class="h-5 w-5 text-muted-foreground" />
+			{/if}
+		</Button>
+	{/if}
 	<div class="flex gap-4">
 		{#if game.coverUrl}
 			<img

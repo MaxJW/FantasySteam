@@ -8,6 +8,9 @@
 		getGameListPage,
 		getGameListGenres,
 		getGame,
+		getBookmarkedGameIds,
+		addBookmark,
+		removeBookmark,
 		isGameHidden,
 		createDraft,
 		getDraft,
@@ -54,6 +57,8 @@
 	import Tags from '@lucide/svelte/icons/tags';
 	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 	import List from '@lucide/svelte/icons/list';
+	import BookmarkCheck from '@lucide/svelte/icons/bookmark-check';
+	import Check from '@lucide/svelte/icons/check';
 
 	const gameDetailCache = new Map<string, Game & { id: string }>();
 
@@ -86,6 +91,8 @@
 	let modalGenres = $state<string[]>([]);
 	let modalSelectedGenres = $state<string[]>([]);
 	let modalViewMode = $state<'table' | 'grid'>('grid');
+	let modalBookmarkedOnly = $state(false);
+	let bookmarkedIds = $state<Set<string>>(new Set());
 
 	let submitting = $state(false);
 	let error = $state('');
@@ -255,6 +262,7 @@
 		detailGame = null;
 		modalSearch = '';
 		modalSelectedGenres = [];
+		modalBookmarkedOnly = false;
 		error = '';
 	}
 
@@ -298,17 +306,22 @@
 		const search = modalSearch.trim() || undefined;
 		const { releaseFrom, releaseTo } = getDateFilters();
 		const genres = modalSelectedGenres.length ? modalSelectedGenres : undefined;
+		const opts: Parameters<typeof getGameListPage>[3] = {
+			search,
+			releaseFrom,
+			releaseTo,
+			genres
+		};
+		if (modalBookmarkedOnly) {
+			opts.bookmarkedOnly = true;
+			opts.bookmarkedIds = bookmarkedIds;
+		}
 
 		gameListLoading = true;
 		gameList = [];
 		gameListTotal = 0;
 		try {
-			const { games, total } = await getGameListPage(year, GAME_LIST_PAGE_SIZE, 0, {
-				search,
-				releaseFrom,
-				releaseTo,
-				genres
-			});
+			const { games, total } = await getGameListPage(year, GAME_LIST_PAGE_SIZE, 0, opts);
 			gameList = games;
 			gameListTotal = total;
 		} finally {
@@ -321,16 +334,26 @@
 		const search = modalSearch.trim() || undefined;
 		const { releaseFrom, releaseTo } = getDateFilters();
 		const genres = modalSelectedGenres.length ? modalSelectedGenres : undefined;
+		const opts: Parameters<typeof getGameListPage>[3] = {
+			search,
+			releaseFrom,
+			releaseTo,
+			genres
+		};
+		if (modalBookmarkedOnly) {
+			opts.bookmarkedOnly = true;
+			opts.bookmarkedIds = bookmarkedIds;
+		}
 		if (gameListLoading || gameListLoadingMore || gameList.length >= gameListTotal) return;
 
 		gameListLoadingMore = true;
 		try {
-			const { games, total } = await getGameListPage(year, GAME_LIST_PAGE_SIZE, gameList.length, {
-				search,
-				releaseFrom,
-				releaseTo,
-				genres
-			});
+			const { games, total } = await getGameListPage(
+				year,
+				GAME_LIST_PAGE_SIZE,
+				gameList.length,
+				opts
+			);
 			gameList = [...gameList, ...games];
 			gameListTotal = total;
 		} finally {
@@ -362,7 +385,13 @@
 	$effect(() => {
 		if (modalStep !== 'game') return;
 		const _ = modalSelectedGenres;
+		const __ = modalBookmarkedOnly;
 		loadGameListFirstPage();
+	});
+
+	$effect(() => {
+		if (modalStep !== 'game' || !me) return;
+		getBookmarkedGameIds(me.uid).then((ids) => (bookmarkedIds = ids));
 	});
 
 	$effect(() => {
@@ -387,6 +416,24 @@
 		observer.observe(sentinel);
 		return () => observer.disconnect();
 	});
+
+	async function handleToggleBookmark() {
+		if (!me || !selectedGameId) {
+			console.log('handleToggleBookmark: not me or selectedGameId');
+			console.log('me', me);
+			console.log('selectedGameId', selectedGameId);
+			return;
+		}
+		const wasBookmarked = bookmarkedIds.has(selectedGameId);
+		if (wasBookmarked) {
+			await removeBookmark(me.uid, selectedGameId);
+			bookmarkedIds = new Set([...bookmarkedIds].filter((id) => id !== selectedGameId));
+		} else {
+			await addBookmark(me.uid, selectedGameId);
+			bookmarkedIds = new Set([...bookmarkedIds, selectedGameId]);
+		}
+		if (modalBookmarkedOnly) loadGameListFirstPage();
+	}
 
 	async function openGameDetail(id: string) {
 		selectedGameId = id;
@@ -853,6 +900,27 @@
 										</Select.Content>
 									</Select.Root>
 								</div>
+								{#if me}
+									<button
+										type="button"
+										role="checkbox"
+										aria-checked={modalBookmarkedOnly}
+										aria-label="Bookmarked only"
+										class="flex h-8 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 text-xs transition-colors hover:bg-white/[0.06]"
+										onclick={() => (modalBookmarkedOnly = !modalBookmarkedOnly)}
+									>
+										<span
+											class="flex size-3.5 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] transition-colors {modalBookmarkedOnly
+												? 'border-primary bg-primary text-primary-foreground'
+												: ''}"
+										>
+											{#if modalBookmarkedOnly}
+												<Check class="h-2 w-2" />
+											{/if}
+										</span>
+										<span class="text-foreground">Bookmarked</span>
+									</button>
+								{/if}
 								<div
 									class="flex items-center gap-0.5 rounded-lg border border-white/[0.08] bg-white/[0.04] p-0.5"
 								>
@@ -900,7 +968,12 @@
 													class="flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
 													onclick={() => openGameDetail(game.id)}
 												>
-													<span class="text-sm font-medium">{game.name}</span>
+													<span class="flex items-center gap-2 text-sm font-medium">
+														{#if bookmarkedIds.has(game.id)}
+															<BookmarkCheck class="h-3.5 w-3.5 shrink-0 text-yellow-400" />
+														{/if}
+														{game.name}
+													</span>
 													<span class="shrink-0 pl-3 font-mono text-xs text-muted-foreground"
 														>{formatDateShort(game.releaseDate)}</span
 													>
@@ -931,6 +1004,14 @@
 															class="flex h-full w-full items-center justify-center p-3 text-center text-sm text-muted-foreground"
 														>
 															{game.name}
+														</div>
+													{/if}
+													{#if bookmarkedIds.has(game.id)}
+														<div
+															class="absolute top-2 right-2 rounded-full bg-black/60 p-1"
+															aria-hidden="true"
+														>
+															<BookmarkCheck class="h-4 w-4 text-yellow-400" />
 														</div>
 													{/if}
 													<div
@@ -970,6 +1051,8 @@
 						game={detailGame}
 						loading={detailLoading}
 						showNotFound={selectedGameId != null && !detailLoading && detailGame == null}
+						isBookmarked={selectedGameId != null && bookmarkedIds.has(selectedGameId)}
+						onToggleBookmark={handleToggleBookmark}
 					>
 						{#snippet footer()}
 							<div
