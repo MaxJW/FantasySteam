@@ -111,9 +111,7 @@
 					</div>
 				{/if}
 			</div>
-			<div
-				class="flex flex-col gap-2 border-t border-white/6 bg-white/2 p-5 sm:flex-row-reverse"
-			>
+			<div class="flex flex-col gap-2 border-t border-white/6 bg-white/2 p-5 sm:flex-row-reverse">
 				<Button
 					type="submit"
 					class="glow-sm-primary w-full sm:w-auto sm:min-w-[140px]"

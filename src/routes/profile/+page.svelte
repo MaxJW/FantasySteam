@@ -65,11 +65,7 @@
 				</div>
 
 				<div class="mt-6 w-full px-6">
-					<Button
-						variant="outline"
-						class="w-full gap-2 border-white/8"
-						onclick={() => signOut()}
-					>
+					<Button variant="outline" class="w-full gap-2 border-white/8" onclick={() => signOut()}>
 						<LogOut class="h-4 w-4" /> Sign out
 					</Button>
 				</div>

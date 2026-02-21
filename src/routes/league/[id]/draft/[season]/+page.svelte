@@ -686,9 +686,7 @@
 			</div>
 		{:else}
 			<!-- Draft Board -->
-			<div
-				class="flex flex-1 flex-col overflow-hidden rounded-xl border border-white/6 bg-card/30"
-			>
+			<div class="flex flex-1 flex-col overflow-hidden rounded-xl border border-white/6 bg-card/30">
 				<ScrollArea class="min-h-0 flex-1" orientation="both">
 					<!-- Column headers -->
 					<div
@@ -751,11 +749,7 @@
 									<div
 										class="group relative min-h-[90px] min-w-[160px] flex-1 overflow-hidden rounded-lg border transition-all sm:min-h-[100px] sm:min-w-[180px]
 										{isActive ? 'animate-glow-pulse border-primary/50 ring-1 ring-primary/30' : 'border-white/6'}
-										{isCurrentPickColumn && !isActive
-											? 'bg-primary/3'
-											: hasPick
-												? 'bg-card/50'
-												: 'bg-white/1'}"
+										{isCurrentPickColumn && !isActive ? 'bg-primary/3' : hasPick ? 'bg-card/50' : 'bg-white/1'}"
 									>
 										{#if hasPick && data?.pick}
 											{@const config = pickConfig[data.pick.pickType] || {

@@ -138,9 +138,7 @@
 							<div class="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
 								<span>Season {league.season}</span>
 								<span class="text-border">|</span>
-								<span
-									class="rounded bg-white/5 px-1.5 py-0.5 font-mono text-xs text-foreground"
-								>
+								<span class="rounded bg-white/5 px-1.5 py-0.5 font-mono text-xs text-foreground">
 									{league.code}
 								</span>
 							</div>

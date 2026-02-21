@@ -52,7 +52,7 @@
 			</div>
 		{/if}
 		<div class="min-w-0 flex-1 space-y-2.5">
-			<h3 class="text-lg/tight  font-semibold tracking-tight">{game.name}</h3>
+			<h3 class="text-lg/tight font-semibold tracking-tight">{game.name}</h3>
 			{#if game.companies?.length}
 				<p class="text-sm text-muted-foreground italic">
 					{game.companies.join(', ')}
@@ -104,7 +104,7 @@
 		<div class="space-y-2">
 			<h4 class="text-xs font-medium text-muted-foreground uppercase">Description</h4>
 			<ScrollArea class="max-h-40 rounded-lg border border-white/6 bg-white/2 p-4">
-				<p class="text-sm/relaxed  whitespace-pre-wrap text-muted-foreground">
+				<p class="text-sm/relaxed whitespace-pre-wrap text-muted-foreground">
 					{game.description}
 				</p>
 			</ScrollArea>
