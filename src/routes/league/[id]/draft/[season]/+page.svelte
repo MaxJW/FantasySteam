@@ -6,6 +6,7 @@
 	import {
 		getLeague,
 		getGameListPage,
+		getGameListGenres,
 		getGame,
 		isGameHidden,
 		createDraft,
@@ -34,6 +35,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
+	import * as Select from '$lib/components/ui/select';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { GameDetailDialog } from '$lib/components/game-detail-dialog';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
@@ -49,6 +51,9 @@
 	import CircleQuestionMark from '@lucide/svelte/icons/circle-question-mark';
 	import Play from '@lucide/svelte/icons/play';
 	import Zap from '@lucide/svelte/icons/zap';
+	import Tags from '@lucide/svelte/icons/tags';
+	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+	import List from '@lucide/svelte/icons/list';
 
 	const gameDetailCache = new Map<string, Game & { id: string }>();
 
@@ -66,7 +71,8 @@
 	let draft = $state<(Draft & { id: string }) | null>(null);
 
 	let isModalOpen = $state(false);
-	let modalStep = $state<'type' | 'game' | 'confirm'>('type');
+	let modalStep = $state<'type' | 'game'>('type');
+	let gameDetailOverlayOpen = $state(false);
 	let gameListLoading = $state(false);
 	let detailLoading = $state(false);
 
@@ -77,6 +83,9 @@
 
 	let gameList = $state<GameListEntry[]>([]);
 	let modalSearch = $state('');
+	let modalGenres = $state<string[]>([]);
+	let modalSelectedGenres = $state<string[]>([]);
+	let modalViewMode = $state<'table' | 'grid'>('grid');
 
 	let submitting = $state(false);
 	let error = $state('');
@@ -84,7 +93,6 @@
 
 	let gameDetailCacheVersion = $state(0);
 	let memberDisplayNames = $state<Map<string, string>>(new Map());
-	let gameListScrollTop = $state(0);
 	let gameListViewportRef = $state<HTMLDivElement | null>(null);
 	let loadError = $state<string | null>(null);
 
@@ -241,10 +249,12 @@
 	function startPickProcess() {
 		isModalOpen = true;
 		modalStep = 'type';
+		gameDetailOverlayOpen = false;
 		selectedPickType = null;
 		selectedGameId = null;
 		detailGame = null;
 		modalSearch = '';
+		modalSelectedGenres = [];
 		error = '';
 	}
 
@@ -252,7 +262,6 @@
 		selectedPickType = type;
 		modalStep = 'game';
 		lastSearchQuery = modalSearch;
-		loadGameListFirstPage();
 	}
 
 	function getInitials(name: string | undefined | null): string {
@@ -288,8 +297,8 @@
 		const year = parseInt(seasonYear);
 		const search = modalSearch.trim() || undefined;
 		const { releaseFrom, releaseTo } = getDateFilters();
+		const genres = modalSelectedGenres.length ? modalSelectedGenres : undefined;
 
-		gameListScrollTop = 0;
 		gameListLoading = true;
 		gameList = [];
 		gameListTotal = 0;
@@ -297,7 +306,8 @@
 			const { games, total } = await getGameListPage(year, GAME_LIST_PAGE_SIZE, 0, {
 				search,
 				releaseFrom,
-				releaseTo
+				releaseTo,
+				genres
 			});
 			gameList = games;
 			gameListTotal = total;
@@ -310,6 +320,7 @@
 		const year = parseInt(seasonYear);
 		const search = modalSearch.trim() || undefined;
 		const { releaseFrom, releaseTo } = getDateFilters();
+		const genres = modalSelectedGenres.length ? modalSelectedGenres : undefined;
 		if (gameListLoading || gameListLoadingMore || gameList.length >= gameListTotal) return;
 
 		gameListLoadingMore = true;
@@ -317,7 +328,8 @@
 			const { games, total } = await getGameListPage(year, GAME_LIST_PAGE_SIZE, gameList.length, {
 				search,
 				releaseFrom,
-				releaseTo
+				releaseTo,
+				genres
 			});
 			gameList = [...gameList, ...games];
 			gameListTotal = total;
@@ -335,6 +347,22 @@
 			loadGameListFirstPage();
 		}, 300);
 		return () => clearTimeout(t);
+	});
+
+	$effect(() => {
+		if (modalStep !== 'game') return;
+		const year = parseInt(seasonYear);
+		if (!year || Number.isNaN(year)) {
+			modalGenres = [];
+			return;
+		}
+		getGameListGenres(year).then((g) => (modalGenres = g));
+	});
+
+	$effect(() => {
+		if (modalStep !== 'game') return;
+		const _ = modalSelectedGenres;
+		loadGameListFirstPage();
 	});
 
 	$effect(() => {
@@ -360,19 +388,11 @@
 		return () => observer.disconnect();
 	});
 
-	$effect(() => {
-		if (modalStep !== 'game' || !gameListViewportRef) return;
-		const saved = gameListScrollTop;
-		queueMicrotask(() => {
-			if (gameListViewportRef) gameListViewportRef.scrollTop = saved;
-		});
-	});
-
 	async function openGameDetail(id: string) {
-		gameListScrollTop = gameListViewportRef?.scrollTop ?? 0;
+		selectedGameId = id;
 		detailLoading = true;
 		detailGame = null;
-		modalStep = 'confirm';
+		gameDetailOverlayOpen = true;
 		try {
 			if (gameDetailCache.has(id)) {
 				detailGame = gameDetailCache.get(id)!;
@@ -399,6 +419,7 @@
 			return;
 		}
 		submitting = true;
+		gameDetailOverlayOpen = false;
 		try {
 			await submitPick(leagueId, draftId, me.uid, selectedGameId, selectedPickType);
 			isModalOpen = false;
@@ -752,15 +773,17 @@
 
 	<!-- Pick Modal -->
 	<Dialog.Root bind:open={isModalOpen}>
-		<Dialog.Content class="gap-0 overflow-hidden p-0 sm:max-w-2xl">
+		<Dialog.Content
+			class="flex flex-col gap-0 overflow-hidden p-0 {modalStep === 'type'
+				? 'w-auto max-w-md sm:max-w-md'
+				: 'h-[90vh] w-[90vw] max-w-none sm:max-w-none'}"
+		>
 			<div class="border-b border-white/[0.06] p-5 pb-3">
 				<Dialog.Title class="text-lg font-semibold">
 					{#if modalStep === 'type'}
 						Select Pick Type
-					{:else if modalStep === 'game'}
-						Select Game
 					{:else}
-						Confirm Selection
+						Select Game
 					{/if}
 				</Dialog.Title>
 				{#if modalStep !== 'type'}
@@ -768,17 +791,20 @@
 						variant="ghost"
 						size="sm"
 						class="mt-1 flex items-center gap-1 text-xs text-muted-foreground"
-						onclick={() => (modalStep = modalStep === 'confirm' ? 'game' : 'type')}
+						onclick={() => {
+							gameDetailOverlayOpen = false;
+							modalStep = 'type';
+						}}
 					>
 						<ArrowLeft class="h-3 w-3" /> Back
 					</Button>
 				{/if}
 			</div>
 
-			<div class="flex h-[420px] flex-col overflow-hidden">
+			<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
 				{#if modalStep === 'type'}
 					<div class="overflow-y-auto p-5">
-						<div class="grid h-full min-h-[340px] grid-cols-2 content-center gap-3">
+						<div class="grid grid-cols-2 gap-3">
 							{#each availablePickTypes as type}
 								{@const conf = pickConfig[type]}
 								{#if conf}
@@ -809,6 +835,47 @@
 									autofocus
 								/>
 							</div>
+							<div class="mt-2 flex flex-wrap items-center gap-2">
+								<div class="flex items-center gap-2">
+									<Tags class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+									<Select.Root bind:value={modalSelectedGenres} type="multiple">
+										<Select.Trigger
+											class="h-8 max-w-[140px] min-w-0 border-white/[0.08] bg-white/[0.04] text-xs"
+										>
+											{modalSelectedGenres.length > 1
+												? `${modalSelectedGenres.length} genres`
+												: (modalSelectedGenres[0] ?? 'Genre')}
+										</Select.Trigger>
+										<Select.Content>
+											{#each modalGenres as genre}
+												<Select.Item value={genre} label={genre}>{genre}</Select.Item>
+											{/each}
+										</Select.Content>
+									</Select.Root>
+								</div>
+								<div
+									class="flex items-center gap-0.5 rounded-lg border border-white/[0.08] bg-white/[0.04] p-0.5"
+								>
+									<Button
+										variant={modalViewMode === 'table' ? 'secondary' : 'ghost'}
+										size="icon"
+										class="h-7 w-7"
+										onclick={() => (modalViewMode = 'table')}
+										aria-label="Table view"
+									>
+										<List class="h-3.5 w-3.5" />
+									</Button>
+									<Button
+										variant={modalViewMode === 'grid' ? 'secondary' : 'ghost'}
+										size="icon"
+										class="h-7 w-7"
+										onclick={() => (modalViewMode = 'grid')}
+										aria-label="Grid view"
+									>
+										<LayoutGrid class="h-3.5 w-3.5" />
+									</Button>
+								</div>
+							</div>
 							<p class="mt-2 text-[11px] text-muted-foreground">
 								{#if selectedPickType === 'seasonalPick'}
 									Showing {phaseCfg?.label ?? ''} games ({phaseCfg
@@ -826,19 +893,65 @@
 						{:else}
 							<ScrollArea class="min-h-0 flex-1" bind:viewportRef={gameListViewportRef}>
 								<div class="p-3">
-									<div class="grid grid-cols-1 gap-0.5">
-										{#each gameListAvailable as game}
-											<button
-												class="flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
-												onclick={() => openGameDetail(game.id)}
-											>
-												<span class="text-sm font-medium">{game.name}</span>
-												<span class="shrink-0 pl-3 font-mono text-xs text-muted-foreground"
-													>{formatDateShort(game.releaseDate)}</span
+									{#if modalViewMode === 'table'}
+										<div class="grid grid-cols-1 gap-0.5">
+											{#each gameListAvailable as game}
+												<button
+													class="flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
+													onclick={() => openGameDetail(game.id)}
 												>
-											</button>
-										{/each}
-									</div>
+													<span class="text-sm font-medium">{game.name}</span>
+													<span class="shrink-0 pl-3 font-mono text-xs text-muted-foreground"
+														>{formatDateShort(game.releaseDate)}</span
+													>
+												</button>
+											{/each}
+										</div>
+									{:else}
+										<div
+											class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+										>
+											{#each gameListAvailable as game}
+												<button
+													type="button"
+													class="group relative aspect-[2/3] w-full cursor-pointer overflow-hidden rounded-lg border border-white/[0.06] bg-white/[0.03] text-left transition-all hover:border-white/[0.15] hover:shadow-lg hover:shadow-primary/[0.05] focus:ring-2 focus:ring-ring focus:outline-none"
+													onclick={() => openGameDetail(game.id)}
+												>
+													{#if game.coverUrl}
+														<img
+															src={game.coverUrl}
+															alt=""
+															class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+															loading="lazy"
+															width="264"
+															height="396"
+														/>
+													{:else}
+														<div
+															class="flex h-full w-full items-center justify-center p-3 text-center text-sm text-muted-foreground"
+														>
+															{game.name}
+														</div>
+													{/if}
+													<div
+														class="absolute inset-x-0 bottom-0 flex min-h-[50%] flex-col justify-end bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+													>
+														<span class="line-clamp-2 text-sm font-medium text-white"
+															>{game.name}</span
+														>
+														<span class="mt-0.5 text-[10px] text-white/70"
+															>{game.releaseDate ?? 'TBA'}</span
+														>
+														{#if game.score != null}
+															<span class="mt-0.5 font-mono text-[10px] text-white/80">
+																Score: {Math.round(game.score).toLocaleString()}
+															</span>
+														{/if}
+													</div>
+												</button>
+											{/each}
+										</div>
+									{/if}
 									<div bind:this={gameListSentinel} class="h-4 w-full" role="presentation"></div>
 									{#if gameListLoadingMore}
 										<div class="py-3 text-center text-xs text-muted-foreground">Loading more…</div>
@@ -851,43 +964,46 @@
 							</ScrollArea>
 						{/if}
 					</div>
-				{:else if modalStep === 'confirm'}
-					<div class="flex min-h-0 flex-1 flex-col">
-						<GameDetailDialog embedded game={detailGame} loading={detailLoading}>
-							{#snippet footer()}
-								<div
-									class="flex w-full items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.03] p-4"
-								>
-									<div class="flex items-center gap-3">
-										{#if selectedPickType && pickConfig[selectedPickType]}
-											{@const conf = pickConfig[selectedPickType]}
-											{@const Icon = conf.icon}
-											<div class="rounded-full border border-white/[0.08] bg-white/[0.03] p-2">
-												<Icon class="h-5 w-5 {conf.color}" />
-											</div>
-											<div>
-												<p class="text-[10px] font-semibold text-muted-foreground uppercase">
-													Drafting as
-												</p>
-												<p class="text-sm font-medium">{conf.label} Pick</p>
-											</div>
-										{/if}
-									</div>
-									<Button
-										size="lg"
-										onclick={confirmPick}
-										disabled={submitting}
-										class="glow-sm-primary px-6"
-									>
-										{submitting ? 'Submitting...' : 'Confirm Pick'}
-									</Button>
+					<GameDetailDialog
+						open={gameDetailOverlayOpen}
+						onOpenChange={(o) => (gameDetailOverlayOpen = o)}
+						game={detailGame}
+						loading={detailLoading}
+						showNotFound={selectedGameId != null && !detailLoading && detailGame == null}
+					>
+						{#snippet footer()}
+							<div
+								class="flex w-full items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.03] p-4"
+							>
+								<div class="flex items-center gap-3">
+									{#if selectedPickType && pickConfig[selectedPickType]}
+										{@const conf = pickConfig[selectedPickType]}
+										{@const Icon = conf.icon}
+										<div class="rounded-full border border-white/[0.08] bg-white/[0.03] p-2">
+											<Icon class="h-5 w-5 {conf.color}" />
+										</div>
+										<div>
+											<p class="text-[10px] font-semibold text-muted-foreground uppercase">
+												Drafting as
+											</p>
+											<p class="text-sm font-medium">{conf.label} Pick</p>
+										</div>
+									{/if}
 								</div>
-								{#if error}
-									<p class="mt-2 text-center text-sm text-destructive">{error}</p>
-								{/if}
-							{/snippet}
-						</GameDetailDialog>
-					</div>
+								<Button
+									size="lg"
+									onclick={confirmPick}
+									disabled={submitting}
+									class="glow-sm-primary px-6"
+								>
+									{submitting ? 'Submitting...' : 'Confirm Pick'}
+								</Button>
+							</div>
+							{#if error}
+								<p class="mt-2 text-center text-sm text-destructive">{error}</p>
+							{/if}
+						{/snippet}
+					</GameDetailDialog>
 				{/if}
 			</div>
 		</Dialog.Content>
