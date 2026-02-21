@@ -133,7 +133,7 @@ export async function syncLeagueCurrentPhase(leagueId: string): Promise<void> {
 	if (!league) return;
 
 	const phaseStatuses = await getDraftPhaseStatuses(leagueId, league.season);
-	const effectivePhase = getEffectiveCurrentPhase(phaseStatuses);
+	const effectivePhase = getEffectiveCurrentPhase(phaseStatuses, league.season);
 
 	if (effectivePhase && effectivePhase !== league.currentPhase) {
 		const updates: Record<string, unknown> = { currentPhase: effectivePhase };

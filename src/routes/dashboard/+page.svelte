@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { currentUser } from '$lib/auth';
 	import { getLeaguesForUser } from '$lib/db';
-	import { PHASE_CONFIG, isPastSeason } from '$lib/db';
+	import { isDraftWindowOpen, isPastSeason } from '$lib/db';
 	import type { League } from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
@@ -30,8 +30,14 @@
 				? `Season ${league.season} Complete`
 				: 'Completed';
 		}
-		if (league.status === 'draft') return 'Pre-Season';
-		return `${PHASE_CONFIG[league.currentPhase]?.label ?? ''} Phase`;
+		if (league.status === 'draft') {
+			const phase = league.currentPhase ?? 'winter';
+			// If currentPhase is summer/fall, we've completed at least one draft — we're in the season
+			if (phase !== 'winter') return 'Scoring';
+			const open = league.season && isDraftWindowOpen(phase, league.season);
+			return open ? 'Drafting' : 'Pre-Season';
+		}
+		return 'Scoring';
 	}
 
 	function getPhaseProgress(league: League): number {

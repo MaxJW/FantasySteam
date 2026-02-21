@@ -30,6 +30,7 @@
 		getTotalRoundsForPhase,
 		getPickTypeForRound,
 		getSeasonalPicksForPlayerCount,
+		isDraftWindowOpen,
 		PHASE_CONFIG,
 		getPhaseReleaseDateRange
 	} from '$lib/db';
@@ -139,6 +140,9 @@
 	);
 
 	const phaseCfg = $derived(PHASE_CONFIG[phase]);
+	const draftWindowOpen = $derived(
+		phase && seasonYear ? isDraftWindowOpen(phase, seasonYear) : false
+	);
 
 	$effect(() => {
 		const params = get(page).params as { id?: string; season?: string };
@@ -190,7 +194,14 @@
 	});
 
 	$effect(() => {
-		if (leagueId && draftId && league) ensureDraft();
+		if (leagueId && draftId && league && draftWindowOpen) ensureDraft();
+	});
+
+	$effect(() => {
+		if (!leagueId || !phase || !seasonYear || draftWindowOpen) return;
+		getDraft(leagueId, draftId).then((d) => {
+			if (!d) goto(`/league/${leagueId}`);
+		});
 	});
 
 	$effect(() => {
@@ -222,7 +233,7 @@
 	});
 
 	async function ensureDraft() {
-		if (!leagueId || !draftId || !league) return;
+		if (!leagueId || !draftId || !league || !draftWindowOpen) return;
 		try {
 			const d = await getDraft(leagueId, draftId);
 			if (d) {
@@ -624,7 +635,11 @@
 				</div>
 			</div>
 			{#if isCommissioner && draft.status === 'pending'}
-				<Button onclick={handleStartDraft} disabled={!allPresent} class="glow-sm-primary gap-2">
+				<Button
+					onclick={handleStartDraft}
+					disabled={!allPresent || !draftWindowOpen}
+					class="glow-sm-primary gap-2"
+				>
 					<Play class="h-4 w-4" /> Start Draft
 				</Button>
 			{/if}

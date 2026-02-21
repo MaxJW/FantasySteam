@@ -26,6 +26,7 @@
 		getDraftId,
 		getScoringGameIds,
 		getSeasonalPicksForPlayerCount,
+		isDraftWindowOpen,
 		isPastSeason
 	} from '$lib/db';
 	import { Button } from '$lib/components/ui/button';
@@ -49,6 +50,7 @@
 	import CheckCircle from '@lucide/svelte/icons/check-circle';
 	import Circle from '@lucide/svelte/icons/circle';
 	import Loader from '@lucide/svelte/icons/loader';
+	import Timer from '@lucide/svelte/icons/timer';
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import Trophy from '@lucide/svelte/icons/trophy';
@@ -78,6 +80,7 @@
 		summer: null,
 		fall: null
 	});
+	let phaseStatusesLoaded = $state(false);
 	let seasonSnapshot = $state<SeasonSnapshot | null>(null);
 	let loadError = $state<string | null>(null);
 	let bookmarkedIds = $state<Set<string>>(new Set());
@@ -175,8 +178,10 @@
 		const id = leagueId;
 		const season = league?.season;
 		if (!id || !season) return;
+		phaseStatusesLoaded = false;
 		getDraftPhaseStatuses(id, season).then(async (s) => {
 			phaseStatuses = s;
+			phaseStatusesLoaded = true;
 			if (!isPastSeason(season)) {
 				await syncLeagueCurrentPhase(id);
 				const updated = await getLeague(id);
@@ -410,7 +415,21 @@
 		}
 	}
 
+	function isImplicitlyComplete(phase: DraftPhase): boolean {
+		if (!league) return false;
+		const idx = DRAFT_PHASES.indexOf(phase);
+		const currentIdx = DRAFT_PHASES.indexOf(league.currentPhase);
+		return idx < currentIdx;
+	}
+
+	function getEffectivePhaseStatus(phase: DraftPhase): DraftStatus | null {
+		if (isImplicitlyComplete(phase)) return 'completed';
+		return phaseStatuses[phase];
+	}
+
 	function getPhaseStatusIcon(phase: DraftPhase) {
+		if (isImplicitlyComplete(phase)) return CheckCircle;
+		if (!phaseStatusesLoaded) return Loader;
 		const status = phaseStatuses[phase];
 		if (status === 'completed') return CheckCircle;
 		if (status === 'active') return Loader;
@@ -418,15 +437,29 @@
 		return Circle;
 	}
 
+	const DRAFT_MONTH_LABELS: Record<DraftPhase, string> = {
+		winter: 'Dec',
+		summer: 'Apr',
+		fall: 'Aug'
+	};
+
 	function getPhaseStatusLabel(phase: DraftPhase): string {
+		if (isImplicitlyComplete(phase)) return 'Complete';
+		if (!phaseStatusesLoaded) return 'Loading';
 		const status = phaseStatuses[phase];
 		if (status === 'completed') return 'Complete';
-		if (status === 'active' || status === 'pending') return 'In Progress';
+		if (status === 'active' || status === 'pending') {
+			if (league && !isDraftWindowOpen(phase, league.season)) {
+				return `Opens ${DRAFT_MONTH_LABELS[phase]}`;
+			}
+			return 'In Progress';
+		}
 		const idx = DRAFT_PHASES.indexOf(phase);
 		const currentIdx = DRAFT_PHASES.indexOf(league?.currentPhase ?? 'winter');
 		if (idx < currentIdx) return 'Skipped';
-		if (league?.currentPhase === phase) return 'Ready';
-		return 'Upcoming';
+		if (league?.currentPhase === phase && league && isDraftWindowOpen(phase, league.season))
+			return 'Ready';
+		return `Opens ${DRAFT_MONTH_LABELS[phase]}`;
 	}
 
 	function canEnterDraft(phase: DraftPhase): boolean {
@@ -435,7 +468,8 @@
 		const currentIdx = DRAFT_PHASES.indexOf(league.currentPhase);
 		if (idx !== currentIdx) return false;
 		const status = phaseStatuses[phase];
-		return status !== 'completed';
+		if (status === 'completed') return false;
+		return isDraftWindowOpen(phase, league.season);
 	}
 
 	const graphColors = [
@@ -572,37 +606,52 @@
 			<div class="grid gap-3 sm:grid-cols-3">
 				{#each DRAFT_PHASES as phase}
 					{@const cfg = PHASE_CONFIG[phase]}
-					{@const status = phaseStatuses[phase]}
+					{@const effectiveStatus = getEffectivePhaseStatus(phase)}
 					{@const phaseLabel = getPhaseStatusLabel(phase)}
 					{@const StatusIcon = getPhaseStatusIcon(phase)}
 					{@const isCurrent = league.currentPhase === phase}
 					{@const canEnter = canEnterDraft(phase)}
+					{@const isWaitingForWindow = isCurrent && !canEnter && phaseLabel.startsWith('Opens')}
 					<div
-						class="relative overflow-hidden rounded-xl border transition-all {isCurrent
-							? 'border-primary/40 bg-primary/[0.04]'
-							: status === 'completed'
-								? 'border-accent/20 bg-accent/[0.03]'
-								: phaseLabel === 'Skipped'
-									? 'border-white/[0.04] bg-white/[0.01] opacity-50'
-									: 'border-white/[0.06] bg-white/[0.02] opacity-60'}"
+						class="relative overflow-hidden rounded-xl border transition-all {isWaitingForWindow
+							? 'border-amber-500/40 bg-amber-500/[0.04]'
+							: isCurrent
+								? 'border-primary/40 bg-primary/[0.04]'
+								: effectiveStatus === 'completed'
+									? 'border-accent/20 bg-accent/[0.03]'
+									: phaseLabel === 'Loading'
+										? 'border-white/[0.06] bg-white/[0.02]'
+										: phaseLabel === 'Skipped'
+											? 'border-white/[0.04] bg-white/[0.01] opacity-50'
+											: 'border-white/[0.06] bg-white/[0.02] opacity-60'}"
 					>
-						{#if isCurrent}
+						{#if isWaitingForWindow}
+							<div
+								class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-amber-500/60 via-amber-500 to-amber-500/60"
+							></div>
+						{:else if isCurrent}
 							<div
 								class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary to-primary/60"
 							></div>
-						{:else if status === 'completed'}
+						{:else if effectiveStatus === 'completed'}
 							<div class="absolute inset-x-0 top-0 h-0.5 bg-accent/40"></div>
 						{/if}
 						<div class="p-4">
 							<div class="flex items-center justify-between">
 								<div class="flex items-center gap-2">
-									<StatusIcon
-										class="h-4 w-4 {status === 'completed'
-											? 'text-accent'
-											: isCurrent
-												? 'animate-spin text-primary'
-												: 'text-muted-foreground'}"
-									/>
+									{#if isWaitingForWindow}
+										<Timer class="h-4 w-4 text-amber-500" />
+									{:else}
+										<StatusIcon
+											class="h-4 w-4 {phaseLabel === 'Loading'
+												? 'animate-spin text-muted-foreground'
+												: effectiveStatus === 'completed'
+													? 'text-accent'
+													: isCurrent
+														? 'animate-spin text-primary'
+														: 'text-muted-foreground'}"
+										/>
+									{/if}
 									<span class="font-semibold">{cfg.label}</span>
 								</div>
 								<span class="text-[10px] font-medium text-muted-foreground uppercase">
@@ -615,7 +664,9 @@
 									.slice(5)}
 							</p>
 							<div class="mt-3">
-								{#if canEnter}
+								{#if phaseLabel === 'Loading'}
+									<p class="text-center text-xs text-muted-foreground">Loading...</p>
+								{:else if canEnter}
 									<Button
 										href="/league/{league.id}/draft/{getDraftId(phase, league.season)}"
 										size="sm"
@@ -623,19 +674,31 @@
 										variant={isCurrent ? 'default' : 'outline'}
 									>
 										<Play class="h-3.5 w-3.5" />
-										{status === 'active' || status === 'pending'
+										{phaseStatuses[phase] === 'active' || phaseStatuses[phase] === 'pending'
 											? 'Continue Draft'
 											: 'Enter Draft Room'}
 									</Button>
-								{:else if status === 'completed'}
+								{:else if effectiveStatus === 'completed'}
 									<p class="text-center text-xs text-muted-foreground">Draft complete</p>
 								{:else if phaseLabel === 'Skipped'}
 									<p class="text-center text-xs text-muted-foreground">Skipped</p>
+								{:else if phaseLabel.startsWith('Opens')}
+									<p class="text-center text-xs text-muted-foreground">{phaseLabel}</p>
 								{:else}
-									<p class="text-center text-xs text-muted-foreground">
-										Complete {PHASE_CONFIG[DRAFT_PHASES[DRAFT_PHASES.indexOf(phase) - 1]]?.label ??
-											''} first
-									</p>
+									{@const phaseIdx = DRAFT_PHASES.indexOf(phase)}
+									{@const prevPhases = DRAFT_PHASES.slice(0, phaseIdx)}
+									{@const firstIncomplete = prevPhases.find(
+										(p) => getEffectivePhaseStatus(p) !== 'completed'
+									)}
+									{#if firstIncomplete == null}
+										<p class="text-center text-xs text-muted-foreground">
+											Opens {DRAFT_MONTH_LABELS[phase]}
+										</p>
+									{:else}
+										<p class="text-center text-xs text-muted-foreground">
+											Complete {PHASE_CONFIG[firstIncomplete]?.label ?? ''} first
+										</p>
+									{/if}
 								{/if}
 							</div>
 						</div>

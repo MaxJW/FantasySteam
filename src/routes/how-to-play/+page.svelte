@@ -27,10 +27,10 @@
 		fall: Leaf
 	} as const;
 
-	const draftMonthNames: Record<string, string> = {
-		winter: 'December',
-		summer: 'April',
-		fall: 'August'
+	const draftWindowOpen: Record<string, string> = {
+		winter: 'Dec or Jan–Apr',
+		summer: 'Apr or May–Aug',
+		fall: 'Aug or Sep–Dec'
 	};
 
 	const phaseWindows: Record<string, string> = {
@@ -42,7 +42,7 @@
 	const phases = DRAFT_PHASES.map((phase) => ({
 		phase,
 		label: PHASE_CONFIG[phase].label,
-		draft: draftMonthNames[phase],
+		draftOpens: draftWindowOpen[phase],
 		window: phaseWindows[phase],
 		isCurrent: phase === currentPhase,
 		Icon: phaseIcons[phase]
@@ -84,7 +84,7 @@
 				>, each covering a portion of the year's releases.
 			</p>
 			<div class="grid gap-3 sm:grid-cols-3">
-				{#each phases as { phase, label, draft, window, isCurrent, Icon }}
+				{#each phases as { phase, label, draftOpens, window, isCurrent, Icon }}
 					<div
 						class="rounded-lg border p-4 transition-colors {isCurrent
 							? 'border-primary/40 bg-primary/[0.06]'
@@ -106,8 +106,8 @@
 							</Badge>
 						</div>
 						<p class="mt-2 text-xs text-muted-foreground">
-							Draft in <strong class="text-foreground">{draft}</strong>. Pick games releasing
-							<strong class="text-foreground">{window}</strong>.
+							Draft opens in <strong class="text-foreground">{draftOpens}</strong>. Pick games
+							releasing <strong class="text-foreground">{window}</strong>.
 						</p>
 					</div>
 				{/each}

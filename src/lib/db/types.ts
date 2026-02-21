@@ -71,14 +71,37 @@ export function getPhaseForDate(date: Date): DraftPhase {
 	return 'fall';
 }
 
-/** Returns the phase whose draft should be done next, based on current date and completed phases. */
+/** Returns true if the draft for this phase/season can be started (last month of prev season OR during phase). */
+export function isDraftWindowOpen(
+	phase: DraftPhase,
+	season: string,
+	date: Date = new Date()
+): boolean {
+	const seasonYear = parseInt(season, 10);
+	const month = date.getMonth();
+	const year = date.getFullYear();
+	const cfg = PHASE_CONFIG[phase];
+	// Last month of previous season (winter: Dec of year-1; summer/fall: Apr/Aug of season year)
+	const inDraftMonth =
+		month === cfg.draftMonth &&
+		(phase === 'winter' ? year === seasonYear - 1 : year === seasonYear);
+	// During phase release window
+	const [startMonth, endMonth] =
+		phase === 'winter' ? [0, 3] : phase === 'summer' ? [4, 7] : [8, 11];
+	const inReleaseWindow = month >= startMonth && month <= endMonth && year === seasonYear;
+	return inDraftMonth || inReleaseWindow;
+}
+
+/** Returns the phase whose draft should be done next, based on draft window and completed phases. */
 export function getEffectiveCurrentPhase(
-	phaseStatuses: Record<DraftPhase, DraftStatus | null>
+	phaseStatuses: Record<DraftPhase, DraftStatus | null>,
+	season: string,
+	date: Date = new Date()
 ): DraftPhase | null {
-	let phase: DraftPhase | null = getPhaseForDate(new Date());
-	while (phase) {
-		if (phaseStatuses[phase] !== 'completed') return phase;
-		phase = getNextPhase(phase);
+	for (const phase of DRAFT_PHASES) {
+		if (phaseStatuses[phase] !== 'completed' && isDraftWindowOpen(phase, season, date)) {
+			return phase;
+		}
 	}
 	return null;
 }
