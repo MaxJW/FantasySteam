@@ -75,6 +75,52 @@
 				</div>
 			</div>
 		</div>
+
+		<!-- Legal links (mobile only — footer is hidden by bottom bar) -->
+		<nav class="md:hidden" aria-label="Legal and info">
+			<div class="glass overflow-hidden rounded-xl">
+				<div class="border-b border-white/[0.06] px-5 py-3">
+					<h2 class="font-semibold">Legal & Info</h2>
+				</div>
+				<ul class="divide-y divide-white/[0.06] p-2">
+					<li>
+						<a
+							href="/about"
+							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground"
+							>About</a
+						>
+					</li>
+					<li>
+						<a
+							href="/contact"
+							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground"
+							>Contact</a
+						>
+					</li>
+					<li>
+						<a
+							href="/terms"
+							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground"
+							>Terms of Service</a
+						>
+					</li>
+					<li>
+						<a
+							href="/privacy"
+							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground"
+							>Privacy Policy</a
+						>
+					</li>
+					<li>
+						<a
+							href="/cookies"
+							class="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground"
+							>Cookie Policy</a
+						>
+					</li>
+				</ul>
+			</div>
+		</nav>
 	{:else}
 		<div class="glass rounded-xl py-10 text-center text-sm text-muted-foreground">
 			Sign in to view your profile.

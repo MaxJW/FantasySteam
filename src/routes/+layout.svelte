@@ -35,12 +35,28 @@
 	$effect(() => {
 		let timeoutId: ReturnType<typeof setTimeout>;
 		const unsub = currentUser.subscribe((u) => {
-			const publicPaths = ['/', '/how-to-play'];
+			const publicPaths = [
+				'/',
+				'/how-to-play',
+				'/about',
+				'/contact',
+				'/terms',
+				'/privacy',
+				'/cookies'
+			];
 			if (!publicPaths.includes(path) && u === null) goto('/');
 			if (u !== undefined) clearTimeout(timeoutId);
 		});
 		// If auth never resolves on protected routes (e.g. iOS), redirect to home after 5s
-		const publicPaths = ['/', '/how-to-play'];
+		const publicPaths = [
+			'/',
+			'/how-to-play',
+			'/about',
+			'/contact',
+			'/terms',
+			'/privacy',
+			'/cookies'
+		];
 		if (!publicPaths.includes(path) && get(currentUser) === undefined) {
 			timeoutId = setTimeout(() => {
 				if (get(currentUser) === undefined) goto('/');
@@ -136,6 +152,22 @@
 	<main class="container mx-auto flex-1 px-4 py-6 pb-24 md:py-8 md:pb-8">
 		{@render children()}
 	</main>
+
+	<footer class="border-t border-white/[0.06] {user ? 'hidden md:block' : ''}">
+		<div
+			class="container mx-auto flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 py-4 text-center text-sm text-muted-foreground"
+		>
+			<a href="/about" class="transition-colors hover:text-foreground">About</a>
+			<span aria-hidden="true">|</span>
+			<a href="/contact" class="transition-colors hover:text-foreground">Contact</a>
+			<span aria-hidden="true">|</span>
+			<a href="/terms" class="transition-colors hover:text-foreground">Terms</a>
+			<span aria-hidden="true">|</span>
+			<a href="/privacy" class="transition-colors hover:text-foreground">Privacy</a>
+			<span aria-hidden="true">|</span>
+			<a href="/cookies" class="transition-colors hover:text-foreground">Cookies</a>
+		</div>
+	</footer>
 
 	{#if user}
 		<nav class="fixed right-0 bottom-0 left-0 z-40 md:hidden" aria-label="Main navigation">
