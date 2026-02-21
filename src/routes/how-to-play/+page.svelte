@@ -15,6 +15,7 @@
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import Sun from '@lucide/svelte/icons/sun';
 	import Leaf from '@lucide/svelte/icons/leaf';
+	import Bookmark from '@lucide/svelte/icons/bookmark';
 	import { DRAFT_PHASES, getPhaseForDate, PHASE_CONFIG } from '$lib/db/types';
 
 	const now = new Date();
@@ -125,7 +126,7 @@
 				Each draft uses a <strong class="text-foreground">snake draft</strong> format.
 			</p>
 			<div class="space-y-3">
-				{#each [{ icon: Snowflake, color: 'text-sky-400', bg: 'bg-sky-400/10', border: 'border-sky-400/20', label: 'Seasonal Picks', desc: "Your core picks. Choose games releasing within the current phase's window. These earn points based on real-world Steam performance.", badge: 'All 3 drafts' }, { icon: Target, color: 'text-accent', bg: 'bg-accent/10', border: 'border-accent/20', label: 'Hit Pick', desc: 'Your GOTY prediction. Pick any unreleased game from the entire year that you think will be the best performer.', badge: 'Winter only' }, { icon: Bomb, color: 'text-destructive', bg: 'bg-destructive/10', border: 'border-destructive/20', label: 'Bomb Pick', desc: 'Pick a game you think will flop. If it underperforms relative to other games, the damage is distributed equally among all other players, reducing their scores.', badge: 'Winter only' }, { icon: Shuffle, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20', label: 'Alt Pick', desc: 'A backup pick that activates if one of your seasonal picks gets delisted from Steam (e.g., pulled to become an Epic exclusive).', badge: 'All 3 drafts' }] as pick}
+				{#each [{ icon: Snowflake, color: 'text-sky-400', bg: 'bg-sky-400/10', border: 'border-sky-400/20', label: 'Seasonal Picks', desc: "Your core picks. Choose games releasing within the current phase's window. These earn points based on real-world Steam performance.", badge: 'All 3 drafts' }, { icon: Target, color: 'text-accent', bg: 'bg-accent/10', border: 'border-accent/20', label: 'Hit Pick', desc: 'Your GOTY prediction. Pick any unreleased game from the entire year that you think will be the best performer.', badge: 'First draft only' }, { icon: Bomb, color: 'text-destructive', bg: 'bg-destructive/10', border: 'border-destructive/20', label: 'Bomb Pick', desc: 'Pick a game you think will flop. If it underperforms relative to other games, the damage is distributed equally among all other players, reducing their scores.', badge: 'First draft only' }, { icon: Shuffle, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20', label: 'Alt Pick', desc: 'A backup pick that activates if one of your seasonal picks gets delisted from Steam (e.g., pulled to become an Epic exclusive).', badge: 'All 3 drafts' }] as pick}
 					{@const Icon = pick.icon}
 					<div class="flex gap-4 rounded-lg border {pick.border} bg-white/[0.01] p-4">
 						<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg {pick.bg}">
@@ -263,6 +264,21 @@
 					bomb damage received.
 				</p>
 			</div>
+		</div>
+	</section>
+
+	<!-- Bookmarks -->
+	<section class="glass overflow-hidden rounded-xl">
+		<div class="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+			<Bookmark class="h-4 w-4 text-primary" />
+			<h2 class="font-semibold">Bookmarks</h2>
+		</div>
+		<div class="p-5">
+			<p class="text-sm text-muted-foreground">
+				Use the <strong class="text-foreground">bookmark</strong> button on any game to save it to your
+				list. Filter by "Bookmarked only" when browsing games or during the draft to quickly find your
+				shortlist.
+			</p>
 		</div>
 	</section>
 
