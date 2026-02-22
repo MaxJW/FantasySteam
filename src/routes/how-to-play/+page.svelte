@@ -16,6 +16,8 @@
 	import Sun from '@lucide/svelte/icons/sun';
 	import Leaf from '@lucide/svelte/icons/leaf';
 	import Bookmark from '@lucide/svelte/icons/bookmark';
+	import Heart from '@lucide/svelte/icons/heart';
+	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import { DRAFT_PHASES, getPhaseForDate, PHASE_CONFIG } from '$lib/db/types';
 
 	const now = new Date();
@@ -70,6 +72,31 @@
 			points based on their real-world performance.
 		</p>
 	</div>
+
+	<!-- Quick Start -->
+	<section class="glass overflow-hidden rounded-xl">
+		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
+			<Zap class="h-4 w-4 text-primary" />
+			<h2 class="font-semibold">Quick Start</h2>
+		</div>
+		<div class="p-5">
+			<ol class="space-y-3 text-sm text-muted-foreground">
+				{#each [{ title: 'Create or join a league', desc: 'using an invite code from your friends.' }, { title: `Enter the ${PHASE_CONFIG[currentPhase].label} Draft Room`, desc: 'when all players are present. The commissioner starts the draft.' }, { title: 'Draft your picks', desc: 'in snake order — hit, bomb, seasonal games, and an alt backup.' }, { title: 'Watch your scores grow', desc: 'as your games release and perform on Steam throughout the year.' }, { title: `Return for ${nextDraftsText}`, desc: 'to expand your roster with new picks.' }] as step, i}
+					<li class="flex gap-3">
+						<span
+							class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary"
+						>
+							{i + 1}
+						</span>
+						<span>
+							<strong class="text-foreground">{step.title}</strong>
+							{step.desc}
+						</span>
+					</li>
+				{/each}
+			</ol>
+		</div>
+	</section>
 
 	<!-- Season -->
 	<section class="glass overflow-hidden rounded-xl">
@@ -295,28 +322,41 @@
 		</div>
 	</section>
 
-	<!-- Quick Start -->
+	<!-- Inspiration -->
 	<section class="glass overflow-hidden rounded-xl">
 		<div class="flex items-center gap-2 border-b border-white/6 px-5 py-3">
-			<Zap class="h-4 w-4 text-primary" />
-			<h2 class="font-semibold">Quick Start</h2>
+			<Heart class="h-4 w-4 text-primary" />
+			<h2 class="font-semibold">Inspiration</h2>
 		</div>
 		<div class="p-5">
-			<ol class="space-y-3 text-sm text-muted-foreground">
-				{#each [{ title: 'Create or join a league', desc: 'using an invite code from your friends.' }, { title: `Enter the ${PHASE_CONFIG[currentPhase].label} Draft Room`, desc: 'when all players are present. The commissioner starts the draft.' }, { title: 'Draft your picks', desc: 'in snake order — hit, bomb, seasonal games, and an alt backup.' }, { title: 'Watch your scores grow', desc: 'as your games release and perform on Steam throughout the year.' }, { title: `Return for ${nextDraftsText}`, desc: 'to expand your roster with new picks.' }] as step, i}
-					<li class="flex gap-3">
-						<span
-							class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary"
-						>
-							{i + 1}
-						</span>
-						<span>
-							<strong class="text-foreground">{step.title}</strong>
-							{step.desc}
-						</span>
-					</li>
-				{/each}
-			</ol>
+			<div class="flex items-start gap-4">
+				<a
+					href="https://www.fantasyboxofficegame.com"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="shrink-0 transition-opacity hover:opacity-90"
+				>
+					<img
+						src="https://www.fantasyboxofficegame.com/logo.svg"
+						alt="Fantasy Box Office"
+						class="h-10"
+					/>
+				</a>
+				<p class="text-sm text-muted-foreground">
+					This game was heavily inspired by
+					<a
+						href="https://www.fantasyboxofficegame.com"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="font-medium text-primary hover:underline"
+					>
+						Fantasy Box Office
+						<ExternalLink class="inline size-3.5" aria-hidden="true" />
+					</a>
+					—the fantasy sports game for movies (box office instead of Steam). If you love drafting and
+					predicting real-world outcomes, check it out.
+				</p>
+			</div>
 		</div>
 	</section>
 </div>

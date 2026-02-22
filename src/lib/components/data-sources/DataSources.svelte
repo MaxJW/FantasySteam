@@ -9,8 +9,8 @@
 	</div>
 	<div class="space-y-4 p-5">
 		<p class="text-sm text-muted-foreground">
-			Fantasy Steam League uses data from the following third-party services. Game covers and
-			metadata are attributed to their respective providers.
+			Fantasy Steam League is not affiliated with Steam or Valve. It uses data from the following
+			third-party services. Game covers and metadata are attributed to their respective providers.
 		</p>
 		<div class="space-y-3">
 			<div class="rounded-lg border border-white/6 bg-white/2 p-4">
