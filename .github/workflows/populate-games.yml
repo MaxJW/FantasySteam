@@ -2,7 +2,7 @@ name: Populate games
 
 on:
   schedule:
-    - cron: "0 0 * * 0" # midnight UTC every Sunday
+    - cron: '0 0 * * 0' # midnight UTC every Sunday
   workflow_dispatch:
 
 jobs:
@@ -17,8 +17,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - run: npm ci
 

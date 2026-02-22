@@ -49,7 +49,9 @@ function log(msg) {
 }
 
 function logTestGame(step, found, detail = '') {
-	const msg = found ? `[TEST GAME] ${step}: present (${detail})` : `[TEST GAME] ${step}: NOT FOUND ${detail ? `(${detail})` : ''}`;
+	const msg = found
+		? `[TEST GAME] ${step}: present (${detail})`
+		: `[TEST GAME] ${step}: NOT FOUND ${detail ? `(${detail})` : ''}`;
 	console.log(`  ${msg}`);
 }
 
@@ -273,7 +275,9 @@ async function main() {
 	logTestGame(
 		'release_dates',
 		inReleaseDates,
-		inReleaseDates ? `date=${releaseInfo?.date}, human=${releaseInfo?.human ?? 'n/a'}` : 'missing from release_dates (wrong year/platform or no Steam 2026 entry)'
+		inReleaseDates
+			? `date=${releaseInfo?.date}, human=${releaseInfo?.human ?? 'n/a'}`
+			: 'missing from release_dates (wrong year/platform or no Steam 2026 entry)'
 	);
 
 	if (gameIds.length === 0) {
@@ -291,7 +295,9 @@ async function main() {
 	logTestGame(
 		'games by ID',
 		!!rawGame,
-		rawGame ? `name="${rawGame.name}"` : 'not in rawGames (filtered by version_parent/parent_game or missing from batch)'
+		rawGame
+			? `name="${rawGame.name}"`
+			: 'not in rawGames (filtered by version_parent/parent_game or missing from batch)'
 	);
 
 	// 3. Steam app IDs
@@ -366,8 +372,14 @@ async function main() {
 
 	writeFileSync(GAMES_JSON_PATH, JSON.stringify({ games }, null, '\t'), 'utf8');
 
-	const testInOutput = games.some((g) => g.igdbId === TEST_IGDB_ID || g.steamAppId === TEST_STEAM_APP_ID);
-	logTestGame('final output', testInOutput, testInOutput ? 'in games.json' : 'missing from final list');
+	const testInOutput = games.some(
+		(g) => g.igdbId === TEST_IGDB_ID || g.steamAppId === TEST_STEAM_APP_ID
+	);
+	logTestGame(
+		'final output',
+		testInOutput,
+		testInOutput ? 'in games.json' : 'missing from final list'
+	);
 
 	console.log(`\n  Done: ${games.length} games written to src/lib/assets/games.json\n`);
 }
