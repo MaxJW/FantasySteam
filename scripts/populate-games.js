@@ -20,13 +20,11 @@ const GAMES_JSON_PATH = join(__dirname, '..', 'src/lib/assets/games.json');
 
 const HIDDEN_APP_ID = '999999';
 const STEAM_PLATFORM_ID = 6;
+/** IGDB theme id for "erotic" – used to exclude purely NSFW/sexual games (per api-docs.igdb.com). */
+const THEME_EROTIC_ID = 42;
 const PAGE_SIZE = 500;
 const BATCH_SIZE = 200;
 const RATE_LIMIT_MS = 300;
-
-/** Test game: IGDB 296831, Steam 2868840 — log at each stage to verify it passes through. */
-const TEST_IGDB_ID = 296831;
-const TEST_STEAM_APP_ID = '2868840';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -45,13 +43,6 @@ function parseYear() {
 }
 
 function log(msg) {
-	console.log(`  ${msg}`);
-}
-
-function logTestGame(step, found, detail = '') {
-	const msg = found
-		? `[TEST GAME] ${step}: present (${detail})`
-		: `[TEST GAME] ${step}: NOT FOUND ${detail ? `(${detail})` : ''}`;
 	console.log(`  ${msg}`);
 }
 
@@ -130,7 +121,7 @@ async function fetchGamesByIds(token, clientId, gameIds) {
 	for (let i = 0; i < gameIds.length; i += GAMES_BATCH) {
 		const batch = gameIds.slice(i, i + GAMES_BATCH);
 		const body = `fields name,cover,genres,summary,involved_companies;
-where id = (${batch.join(',')}) & version_parent = null & parent_game = null;
+where id = (${batch.join(',')}) & version_parent = null & parent_game = null & themes != (${THEME_EROTIC_ID});
 limit ${GAMES_BATCH};`;
 		const page = await igdb(token, clientId, 'games', body);
 		await sleep(RATE_LIMIT_MS);
@@ -270,15 +261,6 @@ async function main() {
 	log(`Fetching Steam release_dates for ${year}...`);
 	const { gameIds, steamReleaseByGame } = await fetchAllReleaseDates(token, clientId, year);
 	log(`${steamReleaseByGame.size} unique games from release_dates`);
-	const inReleaseDates = gameIds.includes(TEST_IGDB_ID);
-	const releaseInfo = steamReleaseByGame.get(TEST_IGDB_ID);
-	logTestGame(
-		'release_dates',
-		inReleaseDates,
-		inReleaseDates
-			? `date=${releaseInfo?.date}, human=${releaseInfo?.human ?? 'n/a'}`
-			: 'missing from release_dates (wrong year/platform or no Steam 2026 entry)'
-	);
 
 	if (gameIds.length === 0) {
 		log('No games found; writing empty list.');
@@ -287,30 +269,14 @@ async function main() {
 		return;
 	}
 
-	// 2. Game details by ID
+	// 2. Game details by ID (erotic theme excluded)
 	log('Fetching game details...');
 	const rawGames = await fetchGamesByIds(token, clientId, gameIds);
 	log(`${rawGames.length} games from IGDB`);
-	const rawGame = rawGames.find((g) => g.id === TEST_IGDB_ID);
-	logTestGame(
-		'games by ID',
-		!!rawGame,
-		rawGame
-			? `name="${rawGame.name}"`
-			: 'not in rawGames (filtered by version_parent/parent_game or missing from batch)'
-	);
 
 	// 3. Steam app IDs
 	const steamIds = await fetchSteamAppIds(token, clientId, gameIds);
 	log(`${steamIds.size} Steam app IDs resolved`);
-	const testSteamId = steamIds.get(TEST_IGDB_ID);
-	logTestGame(
-		'external_games (Steam)',
-		!!testSteamId,
-		testSteamId
-			? `steamAppId=${testSteamId} ${testSteamId === TEST_STEAM_APP_ID ? '(matches expected)' : '(expected ' + TEST_STEAM_APP_ID + ')'}`
-			: 'no Steam link in external_games for this IGDB id'
-	);
 
 	// 4. Covers
 	const coverIds = [...new Set(rawGames.map((g) => g.cover).filter(Boolean))];
@@ -332,10 +298,7 @@ async function main() {
 	for (const g of rawGames) {
 		if (g.id == null) continue;
 		const steamAppId = steamIds.get(g.id) ?? null;
-		if (!steamAppId) {
-			if (g.id === TEST_IGDB_ID) logTestGame('build output', false, 'filtered out: no steamAppId');
-			continue;
-		}
+		if (!steamAppId) continue;
 
 		const id = String(g.id);
 		const steamRelease = steamReleaseByGame.get(g.id);
@@ -371,15 +334,6 @@ async function main() {
 	}
 
 	writeFileSync(GAMES_JSON_PATH, JSON.stringify({ games }, null, '\t'), 'utf8');
-
-	const testInOutput = games.some(
-		(g) => g.igdbId === TEST_IGDB_ID || g.steamAppId === TEST_STEAM_APP_ID
-	);
-	logTestGame(
-		'final output',
-		testInOutput,
-		testInOutput ? 'in games.json' : 'missing from final list'
-	);
 
 	console.log(`\n  Done: ${games.length} games written to src/lib/assets/games.json\n`);
 }
