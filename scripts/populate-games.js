@@ -24,6 +24,10 @@ const PAGE_SIZE = 500;
 const BATCH_SIZE = 200;
 const RATE_LIMIT_MS = 300;
 
+/** Test game: IGDB 296831, Steam 2868840 — log at each stage to verify it passes through. */
+const TEST_IGDB_ID = 296831;
+const TEST_STEAM_APP_ID = '2868840';
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -41,6 +45,11 @@ function parseYear() {
 }
 
 function log(msg) {
+	console.log(`  ${msg}`);
+}
+
+function logTestGame(step, found, detail = '') {
+	const msg = found ? `[TEST GAME] ${step}: present (${detail})` : `[TEST GAME] ${step}: NOT FOUND ${detail ? `(${detail})` : ''}`;
 	console.log(`  ${msg}`);
 }
 
@@ -74,23 +83,56 @@ async function igdb(token, clientId, endpoint, body) {
 /*  Batched IGDB helpers                                               */
 /* ------------------------------------------------------------------ */
 
-async function fetchAllGames(token, clientId, since, until) {
-	const games = [];
+async function fetchAllReleaseDates(token, clientId, year) {
+	const allRows = [];
 	let offset = 0;
 	while (true) {
-		const body = `fields name,first_release_date,cover,genres,summary,involved_companies;
-where platforms = (${STEAM_PLATFORM_ID})
-& first_release_date >= ${since}
-& first_release_date <= ${until}
-& version_parent = null
-& parent_game = null;
-sort first_release_date asc;
+		const body = `fields game,date,human;
+where platform = ${STEAM_PLATFORM_ID} & y = ${year};
+sort date asc;
 limit ${PAGE_SIZE}; offset ${offset};`;
+		const page = await igdb(token, clientId, 'release_dates', body);
+		await sleep(RATE_LIMIT_MS);
+		allRows.push(...page);
+		if (page.length < PAGE_SIZE) break;
+		offset += PAGE_SIZE;
+	}
+	// Dedupe by game: one entry per IGDB game; keep earliest date or first TBD
+	const steamReleaseByGame = new Map();
+	const gameIds = [];
+	for (const r of allRows) {
+		if (r.game == null) continue;
+		const existing = steamReleaseByGame.get(r.game);
+		const date = r.date != null ? r.date : null;
+		const human = r.human != null ? r.human : null;
+		if (!existing) {
+			steamReleaseByGame.set(r.game, { date, human });
+			gameIds.push(r.game);
+		} else {
+			// Keep earliest concrete date; if this is TBD (date 0) and we had none, keep human
+			if (date != null && date > 0) {
+				if (existing.date == null || existing.date <= 0 || date < existing.date) {
+					steamReleaseByGame.set(r.game, { date, human: human ?? existing.human });
+				}
+			} else if ((existing.date == null || existing.date <= 0) && human && !existing.human) {
+				steamReleaseByGame.set(r.game, { ...existing, human });
+			}
+		}
+	}
+	return { gameIds, steamReleaseByGame };
+}
+
+async function fetchGamesByIds(token, clientId, gameIds) {
+	const games = [];
+	const GAMES_BATCH = 500;
+	for (let i = 0; i < gameIds.length; i += GAMES_BATCH) {
+		const batch = gameIds.slice(i, i + GAMES_BATCH);
+		const body = `fields name,cover,genres,summary,involved_companies;
+where id = (${batch.join(',')}) & version_parent = null & parent_game = null;
+limit ${GAMES_BATCH};`;
 		const page = await igdb(token, clientId, 'games', body);
 		await sleep(RATE_LIMIT_MS);
 		games.push(...page);
-		if (page.length < PAGE_SIZE) break;
-		offset += PAGE_SIZE;
 	}
 	return games;
 }
@@ -220,46 +262,85 @@ async function main() {
 	console.log(`\n=== populate-games for ${year} ===\n`);
 
 	const token = await getTwitchToken(clientId, clientSecret);
-	const since = Math.floor(new Date(year, 0, 1).getTime() / 1000);
-	const until = Math.floor(new Date(year, 11, 31, 23, 59, 59).getTime() / 1000);
-	log(`Twitch token OK  |  ${year}-01-01 → ${year}-12-31`);
+	log(`Twitch token OK  |  Steam releases in ${year}`);
 
-	// 1. Games
-	log('Fetching games...');
-	const rawGames = await fetchAllGames(token, clientId, since, until);
+	// 1. Steam release_dates for year (platform 6)
+	log(`Fetching Steam release_dates for ${year}...`);
+	const { gameIds, steamReleaseByGame } = await fetchAllReleaseDates(token, clientId, year);
+	log(`${steamReleaseByGame.size} unique games from release_dates`);
+	const inReleaseDates = gameIds.includes(TEST_IGDB_ID);
+	const releaseInfo = steamReleaseByGame.get(TEST_IGDB_ID);
+	logTestGame(
+		'release_dates',
+		inReleaseDates,
+		inReleaseDates ? `date=${releaseInfo?.date}, human=${releaseInfo?.human ?? 'n/a'}` : 'missing from release_dates (wrong year/platform or no Steam 2026 entry)'
+	);
+
+	if (gameIds.length === 0) {
+		log('No games found; writing empty list.');
+		writeFileSync(GAMES_JSON_PATH, JSON.stringify({ games: [] }, null, '\t'), 'utf8');
+		console.log('\n  Done: 0 games written to src/lib/assets/games.json\n');
+		return;
+	}
+
+	// 2. Game details by ID
+	log('Fetching game details...');
+	const rawGames = await fetchGamesByIds(token, clientId, gameIds);
 	log(`${rawGames.length} games from IGDB`);
+	const rawGame = rawGames.find((g) => g.id === TEST_IGDB_ID);
+	logTestGame(
+		'games by ID',
+		!!rawGame,
+		rawGame ? `name="${rawGame.name}"` : 'not in rawGames (filtered by version_parent/parent_game or missing from batch)'
+	);
 
-	// 2. Steam app IDs
-	const gameIds = rawGames.map((g) => g.id).filter(Boolean);
+	// 3. Steam app IDs
 	const steamIds = await fetchSteamAppIds(token, clientId, gameIds);
 	log(`${steamIds.size} Steam app IDs resolved`);
+	const testSteamId = steamIds.get(TEST_IGDB_ID);
+	logTestGame(
+		'external_games (Steam)',
+		!!testSteamId,
+		testSteamId
+			? `steamAppId=${testSteamId} ${testSteamId === TEST_STEAM_APP_ID ? '(matches expected)' : '(expected ' + TEST_STEAM_APP_ID + ')'}`
+			: 'no Steam link in external_games for this IGDB id'
+	);
 
-	// 3. Covers
+	// 4. Covers
 	const coverIds = [...new Set(rawGames.map((g) => g.cover).filter(Boolean))];
 	const coverMap = await fetchCovers(token, clientId, coverIds);
 	log(`${coverMap.size}/${coverIds.length} covers`);
 
-	// 4. Genres
+	// 5. Genres
 	const genreIds = [...new Set(rawGames.flatMap((g) => g.genres || []))];
 	const genreMap = await fetchGenres(token, clientId, genreIds);
 	log(`${genreMap.size} genres`);
 
-	// 5. Companies
+	// 6. Companies
 	const icIds = [...new Set(rawGames.flatMap((g) => g.involved_companies || []))];
 	const { icToCompany, nameMap: companyNames } = await fetchCompanies(token, clientId, icIds);
 	log(`${companyNames.size} companies`);
 
-	// 6. Build output
+	// 7. Build output
 	const games = [];
 	for (const g of rawGames) {
 		if (g.id == null) continue;
 		const steamAppId = steamIds.get(g.id) ?? null;
-		if (!steamAppId) continue;
+		if (!steamAppId) {
+			if (g.id === TEST_IGDB_ID) logTestGame('build output', false, 'filtered out: no steamAppId');
+			continue;
+		}
 
 		const id = String(g.id);
-		const releaseDate = g.first_release_date
-			? new Date(g.first_release_date * 1000).toISOString().slice(0, 10)
-			: null;
+		const steamRelease = steamReleaseByGame.get(g.id);
+		let releaseDate = null;
+		if (steamRelease) {
+			if (steamRelease.date != null && steamRelease.date > 0) {
+				releaseDate = new Date(steamRelease.date * 1000).toISOString().slice(0, 10);
+			} else if (steamRelease.human) {
+				releaseDate = steamRelease.human;
+			}
+		}
 
 		const companyList = [
 			...new Set(
@@ -284,6 +365,9 @@ async function main() {
 	}
 
 	writeFileSync(GAMES_JSON_PATH, JSON.stringify({ games }, null, '\t'), 'utf8');
+
+	const testInOutput = games.some((g) => g.igdbId === TEST_IGDB_ID || g.steamAppId === TEST_STEAM_APP_ID);
+	logTestGame('final output', testInOutput, testInOutput ? 'in games.json' : 'missing from final list');
 
 	console.log(`\n  Done: ${games.length} games written to src/lib/assets/games.json\n`);
 }
