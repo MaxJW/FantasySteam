@@ -13,82 +13,124 @@
 			third-party services. Game covers and metadata are attributed to their respective providers.
 		</p>
 		<div class="space-y-3">
-			<div class="rounded-lg border border-white/6 bg-white/2 p-4">
-				<h3 class="font-semibold">
-					<a
-						href="https://www.igdb.com"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-primary hover:underline"
-					>
-						IGDB
-					</a>
-					<span class="ml-1 text-xs font-normal text-muted-foreground">(Twitch)</span>
-				</h3>
-				<p class="mt-1 text-sm text-muted-foreground">
-					Game metadata, cover images, genres, and company information are sourced from
-					<a
-						href="https://www.igdb.com"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-primary hover:underline"
-					>
-						IGDB
-					</a>
-					. Cover images are served from
-					<code class="rounded bg-white/4 px-1 py-0.5 text-xs">images.igdb.com</code>
-					.
-				</p>
+			<div class="flex gap-4 rounded-lg border border-white/6 bg-white/2 p-4">
+				<a
+					href="https://www.igdb.com"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="shrink-0 self-start"
+				>
+					<img
+						src="https://www.igdb.com/android-chrome-512x512.png"
+						alt="IGDB Logo"
+						class="size-20 rounded object-cover"
+					/>
+				</a>
+				<div class="min-w-0 flex-1">
+					<h3 class="font-semibold">
+						<a
+							href="https://www.igdb.com"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="text-primary hover:underline"
+						>
+							IGDB
+						</a>
+						<span class="ml-1 text-xs font-normal text-muted-foreground">(Twitch)</span>
+					</h3>
+					<p class="mt-1 text-sm text-muted-foreground">
+						Game metadata, cover images, genres, and company information are sourced from
+						<a
+							href="https://www.igdb.com"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="text-primary hover:underline"
+						>
+							IGDB
+						</a>
+						. Cover images are served from
+						<code class="rounded bg-white/4 px-1 py-0.5 text-xs">images.igdb.com</code>
+						.
+					</p>
+				</div>
 			</div>
-			<div class="rounded-lg border border-white/6 bg-white/2 p-4">
-				<h3 class="font-semibold">
-					<a
-						href="https://store.steampowered.com"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-primary hover:underline"
-					>
-						Steam
-					</a>
-				</h3>
-				<p class="mt-1 text-sm text-muted-foreground">
-					Review counts and concurrent player (CCU) data come from Steam. Game pages link to the
-					<a
-						href="https://store.steampowered.com"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-primary hover:underline"
-					>
-						Steam store
-					</a>
-					for each title.
-				</p>
+			<div class="flex gap-4 rounded-lg border border-white/6 bg-white/2 p-4">
+				<a
+					href="https://store.steampowered.com"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="shrink-0 self-start"
+				>
+					<img
+						src="https://upload.wikimedia.org/wikipedia/commons/8/83/Steam_icon_logo.svg"
+						alt="Steam Logo"
+						class="size-20 rounded object-cover"
+					/>
+				</a>
+				<div class="min-w-0 flex-1">
+					<h3 class="font-semibold">
+						<a
+							href="https://store.steampowered.com"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="text-primary hover:underline"
+						>
+							Steam
+						</a>
+					</h3>
+					<p class="mt-1 text-sm text-muted-foreground">
+						Review counts and concurrent player (CCU) data come from Steam. Game pages link to the
+						<a
+							href="https://store.steampowered.com"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="text-primary hover:underline"
+						>
+							Steam store
+						</a>
+						for each title.
+					</p>
+				</div>
 			</div>
-			<div class="rounded-lg border border-white/6 bg-white/2 p-4">
-				<h3 class="font-semibold">
-					<a
-						href="https://firebase.google.com"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-primary hover:underline"
-					>
-						Firebase
-					</a>
-					<span class="ml-1 text-xs font-normal text-muted-foreground">(Google)</span>
-				</h3>
-				<p class="mt-1 text-sm text-muted-foreground">
-					Authentication (Sign in with Google) and database storage (leagues, teams, picks, scores)
-					are provided by
-					<a
-						href="https://firebase.google.com"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-primary hover:underline"
-					>
-						Firebase
-					</a>
-					.
-				</p>
+			<div class="flex gap-4 rounded-lg border border-white/6 bg-white/2 p-4">
+				<a
+					href="https://firebase.google.com"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="shrink-0 self-start"
+				>
+					<img
+						src="https://firebase.google.com/static/images/brand-guidelines/logo-logomark.png"
+						alt="Firebase Logo"
+						class="size-20 rounded object-cover"
+					/>
+				</a>
+				<div class="min-w-0 flex-1">
+					<h3 class="font-semibold">
+						<a
+							href="https://firebase.google.com"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="text-primary hover:underline"
+						>
+							Firebase
+						</a>
+						<span class="ml-1 text-xs font-normal text-muted-foreground">(Google)</span>
+					</h3>
+					<p class="mt-1 text-sm text-muted-foreground">
+						Authentication (Sign in with Google) and database storage (leagues, teams, picks,
+						scores) are provided by
+						<a
+							href="https://firebase.google.com"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="text-primary hover:underline"
+						>
+							Firebase
+						</a>
+						.
+					</p>
+				</div>
 			</div>
 		</div>
 	</div>
