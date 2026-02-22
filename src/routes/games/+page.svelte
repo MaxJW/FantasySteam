@@ -52,7 +52,7 @@
 		{ value: 'score-desc', label: 'Score (high–low)' }
 	];
 
-	let sortOption = $state<SortOption>('date-asc');
+	let sortOption = $state<SortOption>('score-desc');
 	let sortBy = $derived(sortOption.split('-')[0] as GameListSortBy);
 	let order = $derived(sortOption.split('-')[1] as GameListOrder);
 	let sortLabel = $derived(SORT_OPTIONS.find((o) => o.value === sortOption)?.label ?? sortOption);
